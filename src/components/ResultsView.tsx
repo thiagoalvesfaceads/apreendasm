@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 
 interface ResultsViewProps {
   content: GeneratedContent;
+  isGeneratingImages?: boolean;
   onBack: () => void;
   onRegenerate: () => void;
   onRegenerateImages?: () => void;
