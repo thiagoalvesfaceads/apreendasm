@@ -118,32 +118,19 @@ const AdminUsers = () => {
                     </TableCell>
                     <TableCell>
                       {profile.approved ? (
-                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          Aprovado
-                        </Badge>
+                        <Badge variant="default">Aprovado</Badge>
                       ) : (
-                        <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                          Pendente
-                        </Badge>
+                        <Badge variant="secondary">Pendente</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       {!profile.approved ? (
-                        <Button
-                          size="sm"
-                          onClick={() => approveUser(profile.id)}
-                          className="gap-1"
-                        >
+                        <Button size="sm" onClick={() => approveUser(profile.id)} className="gap-1">
                           <Check className="w-3 h-3" />
                           Aprovar
                         </Button>
                       ) : (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => rejectUser(profile.id)}
-                          className="gap-1"
-                        >
+                        <Button size="sm" variant="destructive" onClick={() => rejectUser(profile.id)} className="gap-1">
                           <Trash2 className="w-3 h-3" />
                           Revogar
                         </Button>
