@@ -4,7 +4,7 @@ import { useContentGeneration } from "@/hooks/useContentGeneration";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, BookOpen } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap } from "lucide-react";
 
 const Index = () => {
   const { isAdmin, signOut } = useAuth();
@@ -29,6 +29,12 @@ const Index = () => {
           </Button>
         </Link>
       )}
+      <Link to="/content-engine">
+        <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+          <Zap className="w-4 h-4" />
+          Content Engine
+        </Button>
+      </Link>
       <Link to="/library">
         <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
           <BookOpen className="w-4 h-4" />
