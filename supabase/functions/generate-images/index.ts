@@ -49,10 +49,13 @@ serve(async (req) => {
 
       try {
         const aiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GOOGLE_AI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": GOOGLE_AI_API_KEY,
+            },
             body: JSON.stringify({
               instances: [{ prompt: fullPrompt }],
               parameters: { sampleCount: 1, aspectRatio: "1:1" },
