@@ -109,3 +109,9 @@ export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
   revelation: "Revelação",
   story: "História",
 };
+
+export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
+  google: "Google Gemini",
+  openai: "OpenAI GPT-4o",
+  anthropic: "Claude Sonnet",
+};
