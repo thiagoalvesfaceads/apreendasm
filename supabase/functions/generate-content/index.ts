@@ -83,6 +83,8 @@ Responda APENAS com JSON válido no formato:
   ]
 }`;
 
+// --- Provider-specific AI callers ---
+
 async function callGoogleAI(apiKey: string, system: string, userPrompt: string) {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -92,9 +94,7 @@ async function callGoogleAI(apiKey: string, system: string, userPrompt: string) 
       body: JSON.stringify({
         contents: [{ parts: [{ text: userPrompt }] }],
         systemInstruction: { parts: [{ text: system }] },
-        generationConfig: {
-          responseMimeType: "application/json",
-        },
+        generationConfig: { responseMimeType: "application/json" },
       }),
     }
   );
@@ -108,8 +108,98 @@ async function callGoogleAI(apiKey: string, system: string, userPrompt: string) 
 
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!content) throw new Error("No content in AI response");
+  if (!content) throw new Error("No content in Google AI response");
   return JSON.parse(content);
+}
+
+async function callOpenAI(apiKey: string, system: string, userPrompt: string) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.8,
+    }),
+  });
+
+  if (!response.ok) {
+    const status = response.status;
+    const body = await response.text();
+    if (status === 429) throw new Error("RATE_LIMITED");
+    throw new Error(`OpenAI error [${status}]: ${body}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("No content in OpenAI response");
+  return JSON.parse(content);
+}
+
+async function callAnthropic(apiKey: string, system: string, userPrompt: string) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      system,
+      messages: [{ role: "user", content: userPrompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const status = response.status;
+    const body = await response.text();
+    if (status === 429) throw new Error("RATE_LIMITED");
+    throw new Error(`Anthropic error [${status}]: ${body}`);
+  }
+
+  const data = await response.json();
+  const text = data.content?.[0]?.text;
+  if (!text) throw new Error("No content in Anthropic response");
+  
+  // Extract JSON from potential markdown code blocks
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const jsonStr = jsonMatch ? jsonMatch[1].trim() : text.trim();
+  return JSON.parse(jsonStr);
+}
+
+// --- Router ---
+
+type Provider = "google" | "openai" | "anthropic";
+
+async function callAI(provider: Provider, system: string, userPrompt: string): Promise<any> {
+  switch (provider) {
+    case "google": {
+      const key = Deno.env.get("GOOGLE_AI_API_KEY");
+      if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada. Adicione nas configurações.");
+      return callGoogleAI(key, system, userPrompt);
+    }
+    case "openai": {
+      const key = Deno.env.get("OPENAI_API_KEY");
+      if (!key) throw new Error("OPENAI_API_KEY não configurada. Adicione nas configurações.");
+      return callOpenAI(key, system, userPrompt);
+    }
+    case "anthropic": {
+      const key = Deno.env.get("ANTHROPIC_API_KEY");
+      if (!key) throw new Error("ANTHROPIC_API_KEY não configurada. Adicione nas configurações.");
+      return callAnthropic(key, system, userPrompt);
+    }
+    default:
+      throw new Error(`Provider desconhecido: ${provider}`);
+  }
 }
 
 serve(async (req) => {
@@ -118,11 +208,8 @@ serve(async (req) => {
   }
 
   try {
-    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-    if (!GOOGLE_AI_API_KEY) throw new Error("GOOGLE_AI_API_KEY not configured");
-
     const input = await req.json();
-    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style } = input;
+    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_provider = "google" } = input;
 
     const strategyPrompt = `Analise esta ideia e crie a camada estratégica:
 
@@ -138,7 +225,7 @@ Considere o nível de consciência da audiência (${awareness}) para calibrar a 
 O objetivo é ${goal}, então a estratégia deve maximizar esse resultado.
 O tom principal deve ser ${tone}.`;
 
-    const strategy = await callGoogleAI(GOOGLE_AI_API_KEY, STRATEGY_SYSTEM, strategyPrompt);
+    const strategy = await callAI(ai_provider, STRATEGY_SYSTEM, strategyPrompt);
 
     let content;
     if (format === "reels") {
@@ -162,7 +249,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie um roteiro envolvente seguindo a estrutura Hook > Contexto > Conflito > Conexão > CTA.`;
 
-      content = await callGoogleAI(GOOGLE_AI_API_KEY, REELS_SYSTEM, reelsPrompt);
+      content = await callAI(ai_provider, REELS_SYSTEM, reelsPrompt);
     } else {
       const carouselPrompt = `Com base nesta estratégia, crie o conteúdo completo para um carrossel de ${cards} slides:
 
@@ -185,7 +272,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie exatamente ${cards} slides seguindo a estrutura definida. Cada slide deve ter um visual_prompt rico e coerente com o estilo visual "${visual_style}".`;
 
-      content = await callGoogleAI(GOOGLE_AI_API_KEY, CAROUSEL_SYSTEM, carouselPrompt);
+      content = await callAI(ai_provider, CAROUSEL_SYSTEM, carouselPrompt);
     }
 
     const result: Record<string, unknown> = { strategy };

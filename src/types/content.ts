@@ -5,6 +5,7 @@ export type ContentTone = "reflective" | "confrontational" | "didactic" | "emoti
 export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_everyday" | "dramatic_cinematic" | "minimal_sophisticated";
 export type LeadType = "offer" | "promise" | "problem_solution" | "big_secret" | "revelation" | "story";
 export type SlideRole = "hook" | "tension" | "insight" | "solution" | "cta" | "development" | "deepening";
+export type AIProvider = "google" | "openai" | "anthropic";
 
 export interface ContentInput {
   idea: string;
@@ -17,6 +18,7 @@ export interface ContentInput {
   cards: number;
   generate_images: boolean;
   visual_style: VisualStyle;
+  ai_provider: AIProvider;
 }
 
 export interface Strategy {
@@ -106,4 +108,10 @@ export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
   big_secret: "Grande Segredo",
   revelation: "Revelação",
   story: "História",
+};
+
+export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
+  google: "Google Gemini",
+  openai: "OpenAI GPT-4o",
+  anthropic: "Claude Sonnet",
 };
