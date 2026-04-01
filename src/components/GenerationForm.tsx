@@ -236,10 +236,24 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
 
       {/* Visual Style + Image Toggle */}
       <div className="card-premium p-5 space-y-5">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground/80">Modelo de IA (Texto)</Label>
+          <Select value={aiProvider} onValueChange={(v) => setAiProvider(v as AIProvider)}>
+            <SelectTrigger className="bg-secondary border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(AI_PROVIDER_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-sm font-medium text-foreground/80">Gerar Imagens Automaticamente</Label>
-            <p className="text-xs text-muted-foreground mt-0.5">Usa Nano Banana 2 para gerar visuais</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Usa Google Gemini para gerar visuais</p>
           </div>
           <Switch checked={generateImages} onCheckedChange={setGenerateImages} />
         </div>
