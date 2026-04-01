@@ -19,6 +19,7 @@ const Index = () => {
       <div className="min-h-screen bg-background py-8 px-4">
         <ResultsView
           content={result}
+          isGeneratingImages={isGeneratingImages}
           onBack={() => setResult(null)}
           onRegenerate={() => generate(result.input)}
           onRegenerateImages={regenerateImages}
