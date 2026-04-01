@@ -62,6 +62,11 @@ export function CarouselTab({ carousel, onRegenerateSlide }: CarouselTabProps) {
                 </button>
               )}
             </div>
+            {slide.image_url && (
+              <div className="rounded-md overflow-hidden aspect-video">
+                <img src={slide.image_url} alt={`Slide ${slide.slide_number}`} className="w-full h-full object-cover" />
+              </div>
+            )}
             <h4 className="text-sm font-semibold text-foreground">{slide.title}</h4>
             <p className="text-xs text-foreground/75 leading-relaxed">{slide.body}</p>
             <div className="pt-2 border-t border-border/50">
