@@ -39,6 +39,7 @@ const TAB_CONFIG = {
 
 export function ResultsView({
   content,
+  isGeneratingImages,
   onBack,
   onRegenerate,
   onRegenerateImages,
