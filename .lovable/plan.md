@@ -1,35 +1,30 @@
 
 
-# Plano: Adicionar página Content Engine MASTER
-
-## Problema com o código fornecido
-
-O código original tem falhas de segurança críticas:
-- Chama a API da Anthropic **diretamente do browser** (expõe chave ou nem funciona sem header de auth)
-- Expõe chave do Gemini no frontend via `VITE_GEMINI_API_KEY`
-
-O projeto **já possui** edge functions (`generate-content` e `generate-images`) que fazem exatamente isso de forma segura. Vamos reutilizá-las.
+# Plano: Adicionar aba "Colar Conteúdo" no Content Engine
 
 ## O que será feito
 
-### 1. Criar `src/pages/ContentEngine.tsx`
-- Layout sidebar + área principal conforme o código fornecido (visual dark/violet)
-- Formulário na sidebar com os mesmos campos (ideia, formato, objetivo, consciência, tom, estilo visual, nicho, oferta, cards, toggle de imagens)
-- **Em vez de chamar APIs diretamente**, usar `supabase.functions.invoke("generate-content")` e `supabase.functions.invoke("generate-images")` — as mesmas edge functions já existentes
-- Mapear os valores do formulário para o formato esperado pelas edge functions (ex: "carrossel" → "carousel", "frio" → "cold")
-- Tabs de resultado: Estratégia, Carrossel/Reels, Legenda, Prompts Visuais, Imagens
-- Funcionalidades de copiar texto e regenerar imagens individuais
+Adicionar um modo de entrada alternativo na sidebar do Content Engine — duas abas no topo da sidebar: **"Gerar"** (formulário atual) e **"Colar Conteúdo"** (novo).
 
-### 2. Adicionar rota em `App.tsx`
-- Rota `/app/content-engine` dentro do bloco protegido (nested sob `/app`)
-- Nota: as rotas atuais não usam nested routes, então será `/content-engine` como rota protegida independente
+### Aba "Colar Conteúdo"
+- Textarea grande com placeholder "Cole aqui o JSON gerado pelo Claude..."
+- Botão "Carregar Conteúdo"
+- Ao clicar, valida o JSON, extrai `strategy`, `carousel`/`reels` e popula o `result` state
+- Se o JSON tiver slides com `visual_prompt`, mostra toggle para gerar imagens automaticamente e dispara `handleGenerateImages`
+- Detecção automática do formato (carousel vs reels) baseada nas chaves do JSON
 
-### 3. Adicionar link na navegação do Index.tsx
-- Botão "Content Engine" no topBar junto com Usuários, Biblioteca e Sair
+### Alterações em `src/pages/ContentEngine.tsx`
+1. Novo state `sidebarMode` com valores `"generate"` | `"paste"`
+2. Novo state `pasteJson` para o textarea
+3. Duas abas visuais no topo da sidebar para alternar entre os modos
+4. No modo "paste": textarea + toggle de gerar imagens + botão "Carregar Conteúdo"
+5. Função `handleLoadPasted` que faz `JSON.parse`, valida campos mínimos, seta `result`, e opcionalmente gera imagens
+6. Os tabs de resultado (Estratégia, Carrossel, Legenda, etc.) continuam funcionando exatamente igual — já renderizam baseados no `result` state
 
-## Detalhes técnicos
-- Nenhuma nova edge function necessária — reutiliza as existentes
-- Nenhuma variável de ambiente nova — as chaves já estão configuradas no backend
-- O seletor de modelo de IA será incluído (usa o campo `ai_provider` já suportado pela edge function)
-- Mapeamento de labels PT-BR → valores internos EN que a edge function espera
+### Validação do JSON
+- Verifica se tem `strategy` e pelo menos `carousel` ou `reels`
+- Se inválido, mostra erro claro no sidebar
+- Detecta formato automaticamente para montar as tabs corretas
+
+Nenhuma alteração em outros arquivos — tudo contido no `ContentEngine.tsx`.
 
