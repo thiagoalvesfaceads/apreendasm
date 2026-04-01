@@ -18,6 +18,7 @@ export interface ContentInput {
   cards: number;
   generate_images: boolean;
   visual_style: VisualStyle;
+  ai_provider: AIProvider;
 }
 
 export interface Strategy {
