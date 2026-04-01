@@ -1,49 +1,51 @@
 
 
-# Plano: Landing Page, Login/Senha e Política de Privacidade
+# Plano: Sistema de Admin + Aprovação de Usuários
 
 ## Resumo
-Criar uma landing page descritiva do projeto (como no Gestor Apreenda), uma página de autenticação com email/senha, e uma página de Política de Privacidade para compliance com Meta.
+Criar um sistema de roles com aprovação de cadastro. O `talcalves@gmail.com` será admin. Novos usuários ficam "pendentes" até serem aprovados pelo admin. O admin terá uma página para ver e aprovar/rejeitar usuários.
 
 ## Passos
 
-### 1. Criar hook `useAuth`
-- Hook que escuta `onAuthStateChange` e expõe `user`, `loading`, `signOut`
-- Usado para proteger rotas e redirecionar usuários logados
+### 1. Criar tabelas no banco (migração)
+- **`user_roles`**: `id`, `user_id` (ref auth.users), `role` (enum: admin, user) — com unique constraint
+- **`profiles`**: `id` (= user_id), `email`, `full_name`, `approved` (boolean, default false), `created_at`
+- Trigger `on_auth_user_created` para criar profile automaticamente com `approved = false`
+- Função `has_role()` (security definer) para checar roles sem recursão RLS
+- RLS em ambas as tabelas
+- Insert inicial: dar role `admin` ao `talcalves@gmail.com` e marcar como `approved = true`
 
-### 2. Criar página `/landing` (Landing Page)
-- Header com logo/nome do app + botão "Entrar"
-- Hero section descrevendo o app: "Gerador de conteúdo para redes sociais com IA"
-- Cards de features: geração de carrosséis, reels, legendas, estratégia, múltiplos modelos de IA
-- Footer com link para Política de Privacidade e contato
-- Adaptado ao tema dark/gold do projeto atual
+### 2. Atualizar `ProtectedRoute`
+- Após autenticação, verificar se o usuário está `approved` na tabela `profiles`
+- Se não aprovado, mostrar tela de "Aguardando aprovação" em vez do app
+- Se admin, permitir acesso sempre
 
-### 3. Criar página `/auth` (Login/Cadastro)
-- Formulário com email + senha (login e signup toggle)
-- Campo nome completo no cadastro
-- Integração com `supabase.auth.signInWithPassword` e `signUp`
-- Redireciona para `/` (dashboard) após login
-- Sem Google OAuth por enquanto (pode adicionar depois)
+### 3. Criar página `/admin/users`
+- Lista todos os profiles com email, nome, data de cadastro, status (aprovado/pendente)
+- Botões para aprovar e rejeitar (deletar) usuários
+- Acessível apenas para users com role `admin`
 
-### 4. Criar página `/privacy-policy`
-- Adaptada para este app (gerador de conteúdo social media)
-- Seções: Dados Coletados, Como Usamos, Armazenamento, Terceiros, Direitos do Usuário, Contato
-- Menção ao uso de APIs de IA (Google, OpenAI, Anthropic) para geração de conteúdo
-- Compliance com regras do Meta App Review
+### 4. Atualizar rotas em `App.tsx`
+- Adicionar rota `/admin/users` protegida (requer admin)
 
-### 5. Atualizar rotas no `App.tsx`
-- `/` → Landing (pública)
-- `/auth` → Auth (pública)
-- `/privacy-policy` → PrivacyPolicy (pública)
-- `/app` → Index atual (protegida — redireciona para `/auth` se não logado)
-- `/library` → Library (protegida)
-
-### 6. Proteger rotas do app
-- Componente `ProtectedRoute` que verifica autenticação
-- Redireciona para `/auth` se não autenticado
+### 5. Adicionar link de admin no app
+- No header/nav do Index, se o usuário for admin, mostrar link para "Gerenciar Usuários"
 
 ## Detalhes Técnicos
-- Nenhuma tabela de profiles será criada (não há necessidade de dados extras do usuário por enquanto)
-- Usa apenas `auth.users` do Supabase para autenticação
-- Landing page usa o design system existente (dark theme com gold accent)
+
+**Enum e tabelas:**
+```text
+create type public.app_role as enum ('admin', 'user');
+
+profiles: id (uuid PK), email (text), full_name (text), approved (bool default false), created_at
+user_roles: id (uuid PK), user_id (uuid), role (app_role), unique(user_id, role)
+```
+
+**Trigger:** Cria profile automaticamente no signup usando `auth.users.raw_user_meta_data->full_name` e `email`.
+
+**Seed admin:** Insert `talcalves@gmail.com` como approved + role admin (via SQL que busca o user_id no auth.users).
+
+**RLS:**
+- `profiles`: users leem próprio profile; admin lê todos
+- `user_roles`: leitura via `has_role()` security definer
 
