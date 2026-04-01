@@ -26,9 +26,9 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) {
+      return new Response(JSON.stringify({ error: "GOOGLE_AI_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -48,63 +48,54 @@ serve(async (req) => {
       const fullPrompt = `Create a social media visual for: ${prompts[i]}.${styleHint} High quality, professional, suitable for Instagram carousel.`;
 
       try {
-        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3.1-flash-image-preview",
-            messages: [{ role: "user", content: fullPrompt }],
-            modalities: ["image", "text"],
-          }),
-        });
+        const aiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_AI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: fullPrompt }] }],
+              generationConfig: {
+                responseModalities: ["TEXT", "IMAGE"],
+              },
+            }),
+          }
+        );
 
         if (!aiResponse.ok) {
           const status = aiResponse.status;
           const text = await aiResponse.text();
-          console.error(`AI error for prompt ${i}:`, status, text);
+          console.error(`Google AI error for prompt ${i}:`, status, text);
 
           if (status === 429) {
             urls.push(null);
             continue;
-          }
-          if (status === 402) {
-            return new Response(JSON.stringify({ error: "PAYMENT_REQUIRED" }), {
-              status: 402,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
           }
           urls.push(null);
           continue;
         }
 
         const data = await aiResponse.json();
-        const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-        if (!imageData) {
+        // Find image part in response
+        const parts = data.candidates?.[0]?.content?.parts || [];
+        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
+
+        if (!imagePart) {
           console.error(`No image in response for prompt ${i}`);
           urls.push(null);
           continue;
         }
 
-        // Extract base64 data
-        const base64Match = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (!base64Match) {
-          console.error(`Invalid base64 format for prompt ${i}`);
-          urls.push(null);
-          continue;
-        }
-
-        const ext = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
-        const base64 = base64Match[2];
+        const base64 = imagePart.inlineData.data;
+        const mimeType = imagePart.inlineData.mimeType;
+        const ext = mimeType === "image/jpeg" ? "jpg" : "png";
         const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
         const filePath = `${timestamp}_${i}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("generated-images")
-          .upload(filePath, bytes, { contentType: `image/${base64Match[1]}`, upsert: true });
+          .upload(filePath, bytes, { contentType: mimeType, upsert: true });
 
         if (uploadError) {
           console.error(`Upload error for prompt ${i}:`, uploadError);
