@@ -45,73 +45,72 @@ serve(async (req) => {
       if (i > 0) await delay(2500);
 
       const styleHint = visual_style ? ` Style: ${visual_style}.` : "";
-      const fullPrompt = `Create a social media visual for: ${prompts[i]}.${styleHint} High quality, professional, suitable for Instagram carousel.`;
+      const fullPrompt = `Generate an image: ${prompts[i]}.${styleHint} High quality, professional, suitable for Instagram carousel. Do not include any text in the image.`;
 
-      try {
-        const aiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GOOGLE_AI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: fullPrompt }] }],
-              generationConfig: {
-                responseModalities: ["TEXT", "IMAGE"],
-              },
-            }),
-          }
-        );
+      // Try up to 2 times since gemini-2.0-flash-exp sometimes doesn't return an image
+      let imageUrl: string | null = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await delay(1500);
 
-        if (!aiResponse.ok) {
-          const status = aiResponse.status;
-          const text = await aiResponse.text();
-          console.error(`Google AI error for prompt ${i}:`, status, text);
+        try {
+          const aiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${GOOGLE_AI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                generationConfig: {
+                  responseModalities: ["TEXT", "IMAGE"],
+                },
+              }),
+            }
+          );
 
-          if (status === 429) {
-            urls.push(null);
+          if (!aiResponse.ok) {
+            const status = aiResponse.status;
+            const text = await aiResponse.text();
+            console.error(`Google AI error for prompt ${i} (attempt ${attempt}):`, status, text);
+            if (status === 429) break; // don't retry on rate limit
             continue;
           }
-          urls.push(null);
-          continue;
+
+          const data = await aiResponse.json();
+          const parts = data.candidates?.[0]?.content?.parts || [];
+          const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
+
+          if (!imagePart) {
+            console.warn(`No image in response for prompt ${i} (attempt ${attempt}), retrying...`);
+            continue;
+          }
+
+          const base64 = imagePart.inlineData.data;
+          const mimeType = imagePart.inlineData.mimeType;
+          const ext = mimeType === "image/jpeg" ? "jpg" : "png";
+          const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+          const filePath = `${timestamp}_${i}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from("generated-images")
+            .upload(filePath, bytes, { contentType: mimeType, upsert: true });
+
+          if (uploadError) {
+            console.error(`Upload error for prompt ${i}:`, uploadError);
+            break;
+          }
+
+          const { data: publicUrl } = supabase.storage
+            .from("generated-images")
+            .getPublicUrl(filePath);
+
+          imageUrl = publicUrl.publicUrl;
+          break; // success, no need to retry
+        } catch (err) {
+          console.error(`Error processing prompt ${i} (attempt ${attempt}):`, err);
         }
-
-        const data = await aiResponse.json();
-
-        // Find image part in response
-        const parts = data.candidates?.[0]?.content?.parts || [];
-        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
-
-        if (!imagePart) {
-          console.error(`No image in response for prompt ${i}`);
-          urls.push(null);
-          continue;
-        }
-
-        const base64 = imagePart.inlineData.data;
-        const mimeType = imagePart.inlineData.mimeType;
-        const ext = mimeType === "image/jpeg" ? "jpg" : "png";
-        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-
-        const filePath = `${timestamp}_${i}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("generated-images")
-          .upload(filePath, bytes, { contentType: mimeType, upsert: true });
-
-        if (uploadError) {
-          console.error(`Upload error for prompt ${i}:`, uploadError);
-          urls.push(null);
-          continue;
-        }
-
-        const { data: publicUrl } = supabase.storage
-          .from("generated-images")
-          .getPublicUrl(filePath);
-
-        urls.push(publicUrl.publicUrl);
-      } catch (err) {
-        console.error(`Error processing prompt ${i}:`, err);
-        urls.push(null);
       }
+
+      urls.push(imageUrl);
     }
 
     return new Response(JSON.stringify({ urls }), {
