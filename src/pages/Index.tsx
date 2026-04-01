@@ -4,7 +4,7 @@ import { useContentGeneration } from "@/hooks/useContentGeneration";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, BookOpen } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap } from "lucide-react";
 
 const Index = () => {
   const { isAdmin, signOut } = useAuth();

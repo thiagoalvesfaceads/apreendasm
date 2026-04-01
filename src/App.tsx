@@ -10,6 +10,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import Index from "./pages/Index.tsx";
 import Library from "./pages/Library.tsx";
 import AdminUsers from "./pages/AdminUsers.tsx";
+import ContentEngine from "./pages/ContentEngine.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
