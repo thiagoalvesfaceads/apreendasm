@@ -266,67 +266,138 @@ export default function ContentEngine() {
           </Button>
         </div>
 
+        {/* Sidebar mode tabs */}
+        <div className="flex border-b border-border">
+          <button
+            onClick={() => setSidebarMode("generate")}
+            className={`flex-1 px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+              sidebarMode === "generate"
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Zap className="w-3 h-3 inline mr-1" />
+            Gerar
+          </button>
+          <button
+            onClick={() => setSidebarMode("paste")}
+            className={`flex-1 px-3 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+              sidebarMode === "paste"
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ClipboardPaste className="w-3 h-3 inline mr-1" />
+            Colar Conteúdo
+          </button>
+        </div>
+
         <div className="p-4 flex flex-col gap-3 flex-1">
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Ideia Bruta</label>
-            <textarea
-              value={form.idea}
-              onChange={(e) => set("idea", e.target.value)}
-              placeholder="Descreva sua ideia..."
-              rows={4}
-              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-            />
-          </div>
+          {sidebarMode === "generate" ? (
+            <>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Ideia Bruta</label>
+                <textarea
+                  value={form.idea}
+                  onChange={(e) => set("idea", e.target.value)}
+                  placeholder="Descreva sua ideia..."
+                  rows={4}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                />
+              </div>
 
-          {SELECT_FIELDS.map(({ label, key, options }) => (
-            <div key={key}>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>
-              <select
-                value={(form as any)[key]}
-                onChange={(e) => set(key, e.target.value)}
-                className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-          ))}
+              {SELECT_FIELDS.map(({ label, key, options }) => (
+                <div key={key}>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>
+                  <select
+                    value={(form as any)[key]}
+                    onChange={(e) => set(key, e.target.value)}
+                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              ))}
 
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Nicho</label>
-            <input value={form.niche} onChange={(e) => set("niche", e.target.value)} placeholder="ex: empreendedorismo"
-              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground" />
-          </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Nicho</label>
+                <input value={form.niche} onChange={(e) => set("niche", e.target.value)} placeholder="ex: empreendedorismo"
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground" />
+              </div>
 
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Oferta (opcional)</label>
-            <input value={form.offer} onChange={(e) => set("offer", e.target.value)} placeholder="ex: mentoria"
-              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground" />
-          </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Oferta (opcional)</label>
+                <input value={form.offer} onChange={(e) => set("offer", e.target.value)} placeholder="ex: mentoria"
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground" />
+              </div>
 
-          {form.format === "carrossel" && (
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Qtd de Cards</label>
-              <select value={form.cards} onChange={(e) => set("cards", e.target.value)}
-                className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
-                {["3", "4", "5", "6", "7", "8", "10"].map((n) => <option key={n} value={n}>{n} cards</option>)}
-              </select>
-            </div>
+              {form.format === "carrossel" && (
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Qtd de Cards</label>
+                  <select value={form.cards} onChange={(e) => set("cards", e.target.value)}
+                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring">
+                    {["3", "4", "5", "6", "7", "8", "10"].map((n) => <option key={n} value={n}>{n} cards</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button onClick={() => set("generateImages", !form.generateImages)}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${form.generateImages ? "bg-primary" : "bg-muted"}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-primary-foreground transition-all ${form.generateImages ? "left-5" : "left-0.5"}`} />
+                </button>
+                <span className="text-xs text-muted-foreground">Gerar imagens</span>
+              </div>
+
+              {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2 text-xs text-destructive">{error}</div>}
+
+              <Button onClick={handleGenerate} disabled={loading} className="w-full gap-2">
+                <Zap className="w-4 h-4" />
+                {loading ? "Gerando..." : "Gerar Conteúdo MASTER"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">JSON do Conteúdo</label>
+                <textarea
+                  value={pasteJson}
+                  onChange={(e) => setPasteJson(e.target.value)}
+                  placeholder="Cole aqui o JSON gerado pelo Claude..."
+                  rows={12}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Estilo Visual (para imagens)</label>
+                <select
+                  value={pasteVisualStyle}
+                  onChange={(e) => setPasteVisualStyle(e.target.value)}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  {SELECT_FIELDS.find(f => f.key === "visualStyle")!.options.map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPasteGenerateImages(!pasteGenerateImages)}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${pasteGenerateImages ? "bg-primary" : "bg-muted"}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-primary-foreground transition-all ${pasteGenerateImages ? "left-5" : "left-0.5"}`} />
+                </button>
+                <span className="text-xs text-muted-foreground">Gerar imagens automaticamente</span>
+              </div>
+
+              {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2 text-xs text-destructive">{error}</div>}
+
+              <Button onClick={handleLoadPasted} disabled={!pasteJson.trim()} className="w-full gap-2">
+                <ClipboardPaste className="w-4 h-4" />
+                Carregar Conteúdo
+              </Button>
+            </>
           )}
-
-          <div className="flex items-center gap-2">
-            <button onClick={() => set("generateImages", !form.generateImages)}
-              className={`w-10 h-5 rounded-full relative transition-colors ${form.generateImages ? "bg-primary" : "bg-muted"}`}>
-              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-primary-foreground transition-all ${form.generateImages ? "left-5" : "left-0.5"}`} />
-            </button>
-            <span className="text-xs text-muted-foreground">Gerar imagens</span>
-          </div>
-
-          {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2 text-xs text-destructive">{error}</div>}
-
-          <Button onClick={handleGenerate} disabled={loading} className="w-full gap-2">
-            <Zap className="w-4 h-4" />
-            {loading ? "Gerando..." : "Gerar Conteúdo MASTER"}
-          </Button>
         </div>
       </div>
 
