@@ -5,6 +5,7 @@ export type ContentTone = "reflective" | "confrontational" | "didactic" | "emoti
 export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_everyday" | "dramatic_cinematic" | "minimal_sophisticated";
 export type LeadType = "offer" | "promise" | "problem_solution" | "big_secret" | "revelation" | "story";
 export type SlideRole = "hook" | "tension" | "insight" | "solution" | "cta" | "development" | "deepening";
+export type AIProvider = "google" | "openai" | "anthropic";
 
 export interface ContentInput {
   idea: string;
