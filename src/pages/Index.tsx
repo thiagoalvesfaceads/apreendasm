@@ -1,16 +1,38 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { GenerationForm } from "@/components/GenerationForm";
+import { ResultsView } from "@/components/ResultsView";
+import { useContentGeneration } from "@/hooks/useContentGeneration";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const {
+    isGenerating,
+    result,
+    generate,
+    setResult,
+    regenerateImages,
+    regenerateCaption,
+    regenerateSlide,
+  } = useContentGeneration();
+
+  if (result) {
+    return (
+      <div className="min-h-screen bg-background py-8 px-4">
+        <ResultsView
+          content={result}
+          onBack={() => setResult(null)}
+          onRegenerate={() => generate(result.input)}
+          onRegenerateImages={regenerateImages}
+          onRegenerateCaption={regenerateCaption}
+          onRegenerateSlide={regenerateSlide}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background py-12 px-4">
+      <GenerationForm onSubmit={generate} isGenerating={isGenerating} />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
