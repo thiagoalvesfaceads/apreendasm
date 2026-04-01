@@ -52,6 +52,68 @@ export default function ContentEngine() {
   const [images, setImages] = useState<Record<number, string>>({});
   const [activeTab, setActiveTab] = useState("estrategia");
   const [error, setError] = useState("");
+  const [sidebarMode, setSidebarMode] = useState<"generate" | "paste">("generate");
+  const [pasteJson, setPasteJson] = useState("");
+  const [pasteGenerateImages, setPasteGenerateImages] = useState(true);
+  const [pasteVisualStyle, setPasteVisualStyle] = useState("clean realista");
+
+  const handleLoadPasted = () => {
+    try {
+      const parsed = JSON.parse(pasteJson.trim());
+      if (!parsed.strategy || (!parsed.carousel && !parsed.reels)) {
+        setError("JSON inválido: precisa ter 'strategy' e 'carousel' ou 'reels'.");
+        return;
+      }
+
+      // Detect format and update form format for tabs
+      const detectedFormat = parsed.carousel ? "carrossel" : "reels";
+      set("format", detectedFormat);
+
+      setResult(parsed);
+      setImages({});
+      setActiveTab("estrategia");
+      setError("");
+      toast.success("Conteúdo carregado com sucesso!");
+
+      // Auto-generate images if toggle is on and there are visual_prompts
+      if (pasteGenerateImages && parsed.carousel?.slides) {
+        const hasPrompts = parsed.carousel.slides.some((s: any) => s.visual_prompt);
+        if (hasPrompts) {
+          handleGenerateImagesForPaste(parsed.carousel.slides);
+        }
+      }
+    } catch {
+      setError("JSON inválido. Verifique o formato e tente novamente.");
+    }
+  };
+
+  const handleGenerateImagesForPaste = async (slides: any[]) => {
+    setLoadingImages(true);
+    const prompts = slides.map((s: any) => s.visual_prompt).filter(Boolean);
+    if (prompts.length === 0) { setLoadingImages(false); return; }
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("generate-images", {
+        body: { prompts, visual_style: VISUAL_MAP[pasteVisualStyle] || pasteVisualStyle },
+      });
+      if (fnError) throw new Error(fnError.message);
+
+      const urls: (string | null)[] = data?.urls || [];
+      const newImages: Record<number, string> = {};
+      slides.forEach((s: any, i: number) => {
+        if (urls[i]) newImages[s.slide_number] = urls[i]!;
+      });
+      setImages(newImages);
+
+      const count = Object.keys(newImages).length;
+      if (count > 0) toast.success(`${count} imagem(ns) gerada(s)!`);
+      else toast.warning("Não foi possível gerar imagens.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar imagens.");
+    } finally {
+      setLoadingImages(false);
+    }
+  };
 
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
