@@ -129,6 +129,7 @@ export function ResultsView({
         {activeTab === "images" && (
           <ImagesTab
             images={images}
+            isLoading={isGeneratingImages}
             onRegenerateAll={onRegenerateImages}
             onRegenerateSingle={onRegenerateSlide ? (i) => onRegenerateSlide(i + 1) : undefined}
           />
