@@ -1,44 +1,38 @@
 
 
-# Plano: Implementar Geração de Imagens com Nano Banana 2
+# Plano: Usar sua API Key do Google AI Studio para gerar imagens
 
-## O que será feito
+## Problema
+Seu saldo de AI no Lovable está em $1/$1 (esgotado) e pausado. Por isso a geração de imagens retorna erro 402.
 
-### 1. Criar bucket de Storage (`generated-images`)
-Migração SQL para criar bucket público para armazenar as imagens geradas.
+## Solução
+Configurar sua própria API key do Google AI Studio na Edge Function `generate-images`, chamando a API do Google diretamente em vez do gateway Lovable.
 
-### 2. Criar Edge Function `generate-images`
-- Recebe lista de prompts visuais
-- Chama `google/gemini-3.1-flash-image-preview` via AI Gateway com `modalities: ["image", "text"]`
-- Faz upload das imagens base64 para o bucket via Supabase client (service role)
-- Retorna URLs públicas
+## Passos
 
-### 3. Atualizar `useContentGeneration.ts`
-- Implementar `regenerateImages()` — gera imagens para todos os slides
-- Implementar `regenerateSlide(slideNumber)` — regenera imagem de um slide
-- Se `generate_images` estiver ativo no formulário, chamar automaticamente após gerar conteúdo
-- Adicionar estado `isGeneratingImages` para loading separado
+### 1. Adicionar seu secret
+Usar a ferramenta de secrets para você inserir sua `GOOGLE_AI_API_KEY` (obtida em [aistudio.google.com/apikey](https://aistudio.google.com/apikey)).
 
-### 4. Atualizar UI
-- `ImagesTab` exibe imagens do bucket com loading state
-- `CarouselTab` mostra thumbnail da imagem em cada slide (se disponível)
-- Loading indicator durante geração de imagens
+### 2. Atualizar Edge Function `generate-images`
+- Trocar o endpoint de `ai.gateway.lovable.dev` para `generativelanguage.googleapis.com`
+- Usar a API nativa do Gemini com `responseModalities: ["TEXT", "IMAGE"]`
+- Autenticar com `?key=${GOOGLE_AI_API_KEY}` em vez de Bearer token
+- Manter toda a lógica de upload para o bucket e retorno de URLs
+
+### 3. Atualizar Edge Function `generate-content` (opcional)
+- Também pode usar sua key para geração de texto, economizando créditos Lovable
 
 ## Detalhes Técnicos
 
-**Modelo:** `google/gemini-3.1-flash-image-preview` (Nano Banana 2)
+**Endpoint Google:** `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_AI_API_KEY}`
 
-**Edge Function** (`supabase/functions/generate-images/index.ts`):
-- Processa prompts sequencialmente com delay de 2s entre cada (evitar rate limit)
-- Extrai base64 de `data.choices[0].message.images[0].image_url.url`
-- Upload para `generated-images/{timestamp}_{index}.png`
-- Retorna array de URLs públicas
+**Payload:**
+```text
+{
+  contents: [{ parts: [{ text: prompt }] }],
+  generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+}
+```
 
-**Storage:**
-- Bucket `generated-images` público
-- RLS: permitir leitura anônima, escrita via service role na Edge Function
-
-**Frontend:**
-- `regenerateImages()` chama `supabase.functions.invoke('generate-images', { body: { prompts } })`
-- Atualiza `result.carousel.slides[i].image_url` com URLs retornadas
+**Resposta:** imagem em `response.candidates[0].content.parts[].inlineData.data` (base64)
 
