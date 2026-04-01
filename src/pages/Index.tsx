@@ -5,6 +5,7 @@ import { useContentGeneration } from "@/hooks/useContentGeneration";
 const Index = () => {
   const {
     isGenerating,
+    isGeneratingImages,
     result,
     generate,
     setResult,
