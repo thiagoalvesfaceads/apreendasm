@@ -6,8 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-
 const STRATEGY_SYSTEM = `Você é um estrategista de conteúdo digital de alto nível. Sua função é analisar uma ideia bruta e produzir uma camada estratégica completa.
 
 Regras:
@@ -85,33 +83,31 @@ Responda APENAS com JSON válido no formato:
   ]
 }`;
 
-async function callAI(apiKey: string, system: string, userPrompt: string) {
-  const response = await fetch(AI_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
+async function callGoogleAI(apiKey: string, system: string, userPrompt: string) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: system }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
 
   if (!response.ok) {
     const status = response.status;
     const body = await response.text();
     if (status === 429) throw new Error("RATE_LIMITED");
-    if (status === 402) throw new Error("PAYMENT_REQUIRED");
-    throw new Error(`AI error [${status}]: ${body}`);
+    throw new Error(`Google AI error [${status}]: ${body}`);
   }
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) throw new Error("No content in AI response");
   return JSON.parse(content);
 }
@@ -122,13 +118,12 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) throw new Error("GOOGLE_AI_API_KEY not configured");
 
     const input = await req.json();
     const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style } = input;
 
-    // Step 1: Generate strategy
     const strategyPrompt = `Analise esta ideia e crie a camada estratégica:
 
 IDEIA: ${idea}
@@ -143,9 +138,8 @@ Considere o nível de consciência da audiência (${awareness}) para calibrar a 
 O objetivo é ${goal}, então a estratégia deve maximizar esse resultado.
 O tom principal deve ser ${tone}.`;
 
-    const strategy = await callAI(LOVABLE_API_KEY, STRATEGY_SYSTEM, strategyPrompt);
+    const strategy = await callGoogleAI(GOOGLE_AI_API_KEY, STRATEGY_SYSTEM, strategyPrompt);
 
-    // Step 2: Generate content based on format
     let content;
     if (format === "reels") {
       const reelsPrompt = `Com base nesta estratégia, crie o conteúdo completo para um Reels:
@@ -168,7 +162,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie um roteiro envolvente seguindo a estrutura Hook > Contexto > Conflito > Conexão > CTA.`;
 
-      content = await callAI(LOVABLE_API_KEY, REELS_SYSTEM, reelsPrompt);
+      content = await callGoogleAI(GOOGLE_AI_API_KEY, REELS_SYSTEM, reelsPrompt);
     } else {
       const carouselPrompt = `Com base nesta estratégia, crie o conteúdo completo para um carrossel de ${cards} slides:
 
@@ -191,7 +185,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie exatamente ${cards} slides seguindo a estrutura definida. Cada slide deve ter um visual_prompt rico e coerente com o estilo visual "${visual_style}".`;
 
-      content = await callAI(LOVABLE_API_KEY, CAROUSEL_SYSTEM, carouselPrompt);
+      content = await callGoogleAI(GOOGLE_AI_API_KEY, CAROUSEL_SYSTEM, carouselPrompt);
     }
 
     const result: Record<string, unknown> = { strategy };
@@ -217,10 +211,9 @@ Crie exatamente ${cards} slides seguindo a estrutura definida. Cada slide deve t
   } catch (e) {
     console.error("generate-content error:", e);
     const msg = e instanceof Error ? e.message : "Unknown error";
-    
+
     let status = 500;
     if (msg === "RATE_LIMITED") status = 429;
-    if (msg === "PAYMENT_REQUIRED") status = 402;
 
     return new Response(JSON.stringify({ error: msg }), {
       status,
