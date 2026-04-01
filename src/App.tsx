@@ -42,6 +42,14 @@ const App = () => (
             }
           />
           <Route
+            path="/content-engine"
+            element={
+              <ProtectedRoute>
+                <ContentEngine />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/users"
             element={
               <ProtectedRoute requireAdmin>
