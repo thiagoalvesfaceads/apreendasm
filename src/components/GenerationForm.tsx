@@ -44,6 +44,7 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
   const [cards, setCards] = useState(7);
   const [generateImages, setGenerateImages] = useState(false);
   const [visualStyle, setVisualStyle] = useState<VisualStyle>("editorial_premium");
+  const [aiProvider, setAiProvider] = useState<AIProvider>("google");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
