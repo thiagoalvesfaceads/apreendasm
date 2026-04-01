@@ -49,15 +49,13 @@ serve(async (req) => {
 
       try {
         const aiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GOOGLE_AI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GOOGLE_AI_API_KEY}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: fullPrompt }] }],
-              generationConfig: {
-                responseModalities: ["TEXT", "IMAGE"],
-              },
+              instances: [{ prompt: fullPrompt }],
+              parameters: { sampleCount: 1, aspectRatio: "1:1" },
             }),
           }
         );
@@ -77,18 +75,15 @@ serve(async (req) => {
 
         const data = await aiResponse.json();
 
-        // Find image part in response
-        const parts = data.candidates?.[0]?.content?.parts || [];
-        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
-
-        if (!imagePart) {
+        const prediction = data.predictions?.[0];
+        if (!prediction?.bytesBase64Encoded) {
           console.error(`No image in response for prompt ${i}`);
           urls.push(null);
           continue;
         }
 
-        const base64 = imagePart.inlineData.data;
-        const mimeType = imagePart.inlineData.mimeType;
+        const base64 = prediction.bytesBase64Encoded;
+        const mimeType = prediction.mimeType || "image/png";
         const ext = mimeType === "image/jpeg" ? "jpg" : "png";
         const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
