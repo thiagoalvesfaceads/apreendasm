@@ -1,13 +1,28 @@
-import { ImageIcon, RefreshCw } from "lucide-react";
+import { ImageIcon, RefreshCw, Loader2 } from "lucide-react";
 
 interface ImagesTabProps {
   images: { label: string; url?: string }[];
+  isLoading?: boolean;
   onRegenerateAll?: () => void;
   onRegenerateSingle?: (index: number) => void;
 }
 
-export function ImagesTab({ images, onRegenerateAll, onRegenerateSingle }: ImagesTabProps) {
+export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSingle }: ImagesTabProps) {
   const hasAnyImages = images.some((img) => img.url);
+
+  if (isLoading) {
+    return (
+      <div className="card-premium p-12 flex flex-col items-center justify-center text-center space-y-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <div>
+          <h3 className="text-sm font-medium text-foreground/80">Gerando imagens...</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Isso pode levar alguns segundos por imagem.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasAnyImages) {
     return (
@@ -18,7 +33,7 @@ export function ImagesTab({ images, onRegenerateAll, onRegenerateSingle }: Image
         <div>
           <h3 className="text-sm font-medium text-foreground/80">Nenhuma imagem gerada</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Ative "Gerar Imagens Automaticamente" no formulário ou clique em regenerar.
+            Ative "Gerar Imagens Automaticamente" no formulário ou clique em gerar.
           </p>
         </div>
         {onRegenerateAll && (

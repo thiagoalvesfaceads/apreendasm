@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 
 interface ResultsViewProps {
   content: GeneratedContent;
+  isGeneratingImages?: boolean;
   onBack: () => void;
   onRegenerate: () => void;
   onRegenerateImages?: () => void;
@@ -38,6 +39,7 @@ const TAB_CONFIG = {
 
 export function ResultsView({
   content,
+  isGeneratingImages,
   onBack,
   onRegenerate,
   onRegenerateImages,
@@ -127,6 +129,7 @@ export function ResultsView({
         {activeTab === "images" && (
           <ImagesTab
             images={images}
+            isLoading={isGeneratingImages}
             onRegenerateAll={onRegenerateImages}
             onRegenerateSingle={onRegenerateSlide ? (i) => onRegenerateSlide(i + 1) : undefined}
           />
