@@ -1,51 +1,35 @@
 
 
-# Plano: Sistema de Admin + Aprovação de Usuários
+# Plano: Adicionar página Content Engine MASTER
 
-## Resumo
-Criar um sistema de roles com aprovação de cadastro. O `talcalves@gmail.com` será admin. Novos usuários ficam "pendentes" até serem aprovados pelo admin. O admin terá uma página para ver e aprovar/rejeitar usuários.
+## Problema com o código fornecido
 
-## Passos
+O código original tem falhas de segurança críticas:
+- Chama a API da Anthropic **diretamente do browser** (expõe chave ou nem funciona sem header de auth)
+- Expõe chave do Gemini no frontend via `VITE_GEMINI_API_KEY`
 
-### 1. Criar tabelas no banco (migração)
-- **`user_roles`**: `id`, `user_id` (ref auth.users), `role` (enum: admin, user) — com unique constraint
-- **`profiles`**: `id` (= user_id), `email`, `full_name`, `approved` (boolean, default false), `created_at`
-- Trigger `on_auth_user_created` para criar profile automaticamente com `approved = false`
-- Função `has_role()` (security definer) para checar roles sem recursão RLS
-- RLS em ambas as tabelas
-- Insert inicial: dar role `admin` ao `talcalves@gmail.com` e marcar como `approved = true`
+O projeto **já possui** edge functions (`generate-content` e `generate-images`) que fazem exatamente isso de forma segura. Vamos reutilizá-las.
 
-### 2. Atualizar `ProtectedRoute`
-- Após autenticação, verificar se o usuário está `approved` na tabela `profiles`
-- Se não aprovado, mostrar tela de "Aguardando aprovação" em vez do app
-- Se admin, permitir acesso sempre
+## O que será feito
 
-### 3. Criar página `/admin/users`
-- Lista todos os profiles com email, nome, data de cadastro, status (aprovado/pendente)
-- Botões para aprovar e rejeitar (deletar) usuários
-- Acessível apenas para users com role `admin`
+### 1. Criar `src/pages/ContentEngine.tsx`
+- Layout sidebar + área principal conforme o código fornecido (visual dark/violet)
+- Formulário na sidebar com os mesmos campos (ideia, formato, objetivo, consciência, tom, estilo visual, nicho, oferta, cards, toggle de imagens)
+- **Em vez de chamar APIs diretamente**, usar `supabase.functions.invoke("generate-content")` e `supabase.functions.invoke("generate-images")` — as mesmas edge functions já existentes
+- Mapear os valores do formulário para o formato esperado pelas edge functions (ex: "carrossel" → "carousel", "frio" → "cold")
+- Tabs de resultado: Estratégia, Carrossel/Reels, Legenda, Prompts Visuais, Imagens
+- Funcionalidades de copiar texto e regenerar imagens individuais
 
-### 4. Atualizar rotas em `App.tsx`
-- Adicionar rota `/admin/users` protegida (requer admin)
+### 2. Adicionar rota em `App.tsx`
+- Rota `/app/content-engine` dentro do bloco protegido (nested sob `/app`)
+- Nota: as rotas atuais não usam nested routes, então será `/content-engine` como rota protegida independente
 
-### 5. Adicionar link de admin no app
-- No header/nav do Index, se o usuário for admin, mostrar link para "Gerenciar Usuários"
+### 3. Adicionar link na navegação do Index.tsx
+- Botão "Content Engine" no topBar junto com Usuários, Biblioteca e Sair
 
-## Detalhes Técnicos
-
-**Enum e tabelas:**
-```text
-create type public.app_role as enum ('admin', 'user');
-
-profiles: id (uuid PK), email (text), full_name (text), approved (bool default false), created_at
-user_roles: id (uuid PK), user_id (uuid), role (app_role), unique(user_id, role)
-```
-
-**Trigger:** Cria profile automaticamente no signup usando `auth.users.raw_user_meta_data->full_name` e `email`.
-
-**Seed admin:** Insert `talcalves@gmail.com` como approved + role admin (via SQL que busca o user_id no auth.users).
-
-**RLS:**
-- `profiles`: users leem próprio profile; admin lê todos
-- `user_roles`: leitura via `has_role()` security definer
+## Detalhes técnicos
+- Nenhuma nova edge function necessária — reutiliza as existentes
+- Nenhuma variável de ambiente nova — as chaves já estão configuradas no backend
+- O seletor de modelo de IA será incluído (usa o campo `ai_provider` já suportado pela edge function)
+- Mapeamento de labels PT-BR → valores internos EN que a edge function espera
 
