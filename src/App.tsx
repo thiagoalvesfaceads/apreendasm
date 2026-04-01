@@ -9,6 +9,7 @@ import Auth from "./pages/Auth.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import Index from "./pages/Index.tsx";
 import Library from "./pages/Library.tsx";
+import AdminUsers from "./pages/AdminUsers.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Library />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminUsers />
               </ProtectedRoute>
             }
           />
