@@ -1,38 +1,38 @@
 
 
-# Plano: Usar sua API Key do Google AI Studio para gerar imagens
+# Plano: Dropdown de IA (Google, OpenAI, Claude) no formulário
 
-## Problema
-Seu saldo de AI no Lovable está em $1/$1 (esgotado) e pausado. Por isso a geração de imagens retorna erro 402.
+## O que muda
 
-## Solução
-Configurar sua própria API key do Google AI Studio na Edge Function `generate-images`, chamando a API do Google diretamente em vez do gateway Lovable.
+### 1. Adicionar secrets para OpenAI e Anthropic
+Solicitar duas novas secrets: `OPENAI_API_KEY` e `ANTHROPIC_API_KEY`.
 
-## Passos
+### 2. Atualizar types (`src/types/content.ts`)
+- Novo type `AIProvider = "google" | "openai" | "anthropic"`
+- Labels: Google Gemini, OpenAI GPT-4o, Claude Sonnet
+- Adicionar `ai_provider: AIProvider` ao `ContentInput`
 
-### 1. Adicionar seu secret
-Usar a ferramenta de secrets para você inserir sua `GOOGLE_AI_API_KEY` (obtida em [aistudio.google.com/apikey](https://aistudio.google.com/apikey)).
+### 3. Adicionar dropdown no formulário (`GenerationForm.tsx`)
+- Select "Modelo de IA" dentro da seção criativa (ao lado do estilo visual)
+- Google como default
+- Mostrar as 3 opções: Google Gemini, OpenAI GPT-4o, Claude Sonnet
 
-### 2. Atualizar Edge Function `generate-images`
-- Trocar o endpoint de `ai.gateway.lovable.dev` para `generativelanguage.googleapis.com`
-- Usar a API nativa do Gemini com `responseModalities: ["TEXT", "IMAGE"]`
-- Autenticar com `?key=${GOOGLE_AI_API_KEY}` em vez de Bearer token
-- Manter toda a lógica de upload para o bucket e retorno de URLs
+### 4. Atualizar Edge Function `generate-content`
+- Receber `ai_provider` no body
+- Roteamento:
+  - `google` → Gemini API (como está hoje)
+  - `openai` → OpenAI Chat Completions API (`gpt-4o`, response_format json)
+  - `anthropic` → Anthropic Messages API (`claude-sonnet-4-20250514`, JSON output)
+- Mesmos system prompts para todos os providers
 
-### 3. Atualizar Edge Function `generate-content` (opcional)
-- Também pode usar sua key para geração de texto, economizando créditos Lovable
+### 5. Imagens ficam no Google
+A edge function `generate-images` continua usando Google Gemini para geração de imagens (sem mudança).
 
 ## Detalhes Técnicos
 
-**Endpoint Google:** `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_AI_API_KEY}`
+**OpenAI endpoint:** `https://api.openai.com/v1/chat/completions` com `response_format: { type: "json_object" }`
 
-**Payload:**
-```text
-{
-  contents: [{ parts: [{ text: prompt }] }],
-  generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
-}
-```
+**Anthropic endpoint:** `https://api.anthropic.com/v1/messages` com header `anthropic-version: 2023-06-01`
 
-**Resposta:** imagem em `response.candidates[0].content.parts[].inlineData.data` (base64)
+**Fallback:** Se a key do provider escolhido não estiver configurada, retorna erro claro pedindo para configurar.
 
