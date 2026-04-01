@@ -1,26 +1,25 @@
 
 
-# Plano: Mover "Colar Conteúdo" para a tela inicial (/app)
+# Fix: Usar modelo imagen-3.0-generate-002 com GOOGLE_AI_API_KEY
 
-## Problema atual
-- O Content Engine é uma página separada (`/content-engine`) com layout de sidebar, que parece "pequeno do lado"
-- A funcionalidade de "Colar Conteúdo" só aparece lá, mas deveria estar acessível na tela principal (`/app`)
+## Problema
+O modelo `gemini-2.0-flash-preview-image-generation` não existe na API v1beta, causando 404 em todos os prompts.
 
-## O que será feito
+## Solução
+Trocar para `imagen-3.0-generate-002` usando a `GOOGLE_AI_API_KEY` já configurada nas secrets.
 
-### 1. Adicionar aba "Colar Conteúdo" na página Index (`src/pages/Index.tsx`)
-- Duas abas no topo da área de formulário: **"Gerar"** (formulário atual via `GenerationForm`) e **"Colar Conteúdo"**
-- Na aba "Colar Conteúdo": textarea grande, toggle de gerar imagens, seletor de estilo visual, botão "Carregar Conteúdo"
-- Ao carregar o JSON, exibir resultado usando o mesmo `ResultsView` já existente
-- Reutilizar o hook `useContentGeneration` para gerar imagens dos prompts visuais
+## Alterações em `supabase/functions/generate-images/index.ts`
 
-### 2. Manter o Content Engine como está
-- A rota `/content-engine` continua funcionando normalmente para quem preferir o layout com sidebar
+1. **Endpoint**: Trocar para `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GOOGLE_AI_API_KEY}`
+2. **Payload**: Trocar formato para:
+```json
+{
+  "instances": [{ "prompt": "..." }],
+  "parameters": { "sampleCount": 1, "aspectRatio": "1:1" }
+}
+```
+3. **Parse da resposta**: Extrair imagem de `predictions[0].bytesBase64Encoded` em vez de `candidates[0].content.parts`
+4. **Manter**: Upload ao bucket `generated-images`, retorno de URLs públicas, tratamento de erros 429, delay entre requests
 
-### Detalhes técnicos
-- Editar apenas `src/pages/Index.tsx`
-- Adicionar states para o modo (gerar/colar), JSON colado, e toggle de imagens
-- Função `handleLoadPasted` faz parse, valida `strategy` + `carousel`/`reels`, e seta o resultado no state existente
-- Se tiver `visual_prompt` nos slides e toggle ligado, chama `generateImages` do hook existente
-- Visual consistente com o tema escuro atual
+Nenhum outro arquivo precisa ser alterado.
 
