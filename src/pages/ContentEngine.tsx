@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ArrowLeft } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ArrowLeft, ClipboardPaste } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Maps PT-BR form values → EN values expected by edge functions
