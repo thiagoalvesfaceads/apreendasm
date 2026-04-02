@@ -168,7 +168,7 @@ export default function ContentEngine() {
 
   const handleGenerate = async () => {
     if (!form.idea.trim()) { setError("Digite uma ideia."); return; }
-    setError(""); setLoading(true); setResult(null); setImages({});
+    setError(""); setLoading(true); setResult(null); setImages({}); setSaved(false);
     try {
       const body = {
         idea: form.idea, format: FORMAT_MAP[form.format] || form.format,
