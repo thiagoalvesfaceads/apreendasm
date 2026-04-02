@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, ArrowLeft, Loader2, RefreshCw, Upload, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Download, ArrowLeft, Loader2, RefreshCw, Upload, X, ChevronUp, ChevronDown, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SlideData {
@@ -148,6 +148,7 @@ async function renderCard(
   avatarImg: HTMLImageElement | null,
   slideImg: HTMLImageElement | null,
   offsetY: number = 0,
+  scale: number = 1.0,
 ) {
   const ctx = canvas.getContext("2d")!;
   canvas.width = CANVAS_W;
@@ -297,12 +298,13 @@ async function renderCard(
 
     // --- Generated image ---
     const imgPadding = PADDING;
-    const imgW = CANVAS_W - imgPadding * 2;
+    const baseW = CANVAS_W - imgPadding * 2;
+    const imgW = baseW * scale;
     const availableH = CANVAS_H - cursorY - imgPadding;
-    const imgH = Math.min(availableH, imgW * 0.75);
+    const imgH = Math.min(availableH * scale, imgW * 0.75);
     const maxImgY = CANVAS_H - imgPadding - imgH;
     const imgY = Math.max(cursorY, Math.min(maxImgY, cursorY + offsetY));
-    const imgX = imgPadding;
+    const imgX = imgPadding + (baseW - imgW) / 2;
     const radius = 20;
 
     ctx.save();
@@ -331,6 +333,7 @@ export default function CardGenerator() {
   const [slideImgs, setSlideImgs] = useState<Record<number, HTMLImageElement>>({});
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
   const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
+  const [imageScales, setImageScales] = useState<Record<number, number>>({});
   const [rendered, setRendered] = useState(false);
 
   // Load slides and cached images from localStorage
@@ -421,19 +424,19 @@ export default function CardGenerator() {
     return () => { cancelled = true; };
   }, [generatedImages]);
 
-  // Render canvases — re-render whenever slides, avatar, slide images or offsets change
+  // Render canvases — re-render whenever slides, avatar, slide images, offsets or scales change
   useEffect(() => {
     if (slides.length === 0) return;
     let anyRendered = false;
     slides.forEach((slide) => {
       const canvas = canvasRefs.current[slide.slide_number];
       if (canvas) {
-        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null, imageOffsets[slide.slide_number] || 0);
+        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null, imageOffsets[slide.slide_number] || 0, imageScales[slide.slide_number] || 1.0);
         anyRendered = true;
       }
     });
     if (anyRendered) setRendered(true);
-  }, [slides, avatarImg, slideImgs, imageOffsets]);
+  }, [slides, avatarImg, slideImgs, imageOffsets, imageScales]);
 
   const handleImageUpload = useCallback((slideNumber: number, file: File) => {
     const reader = new FileReader();
@@ -585,6 +588,24 @@ export default function CardGenerator() {
                       title="Mover imagem para baixo"
                     >
                       <ChevronDown className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageScales((prev) => ({ ...prev, [slide.slide_number]: Math.max(0.5, ((prev[slide.slide_number] || 1.0) - 0.1)) }))}
+                      title="Diminuir imagem"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageScales((prev) => ({ ...prev, [slide.slide_number]: Math.min(1.5, ((prev[slide.slide_number] || 1.0) + 0.1)) }))}
+                      title="Aumentar imagem"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
