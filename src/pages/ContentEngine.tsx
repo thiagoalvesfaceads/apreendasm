@@ -625,13 +625,37 @@ export default function ContentEngine() {
                 <div key={slide.slide_number} className="bg-card border border-border rounded-xl p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">{slide.slide_number}</div>
-                    <div>
-                      <div className="font-semibold text-sm">{slide.title}</div>
-                      <div className="text-xs text-primary uppercase tracking-wider">{slide.role}</div>
-                    </div>
+                    <div className="text-xs text-primary uppercase tracking-wider">{slide.role}</div>
                   </div>
-                  <div className="text-sm leading-relaxed mb-2">{slide.body}</div>
-                  <div className="text-xs text-muted-foreground italic">🎯 {slide.emotional_goal}</div>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Título</label>
+                      <input
+                        className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+                        value={slide.title}
+                        onChange={(e) => updateSlide(slide.slide_number, "title", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Corpo</label>
+                      <textarea
+                        className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        rows={3}
+                        value={slide.body}
+                        onChange={(e) => updateSlide(slide.slide_number, "body", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prompt Visual</label>
+                      <textarea
+                        className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono text-muted-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        rows={2}
+                        value={slide.visual_prompt}
+                        onChange={(e) => updateSlide(slide.slide_number, "visual_prompt", e.target.value)}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground italic">🎯 {slide.emotional_goal}</div>
+                  </div>
                 </div>
               ))}
             </div>
