@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { code } = await req.json();
-    if (!code) {
-      return new Response(JSON.stringify({ error: "Missing code" }), {
+    const { code, code_verifier } = await req.json();
+    if (!code || !code_verifier) {
+      return new Response(JSON.stringify({ error: "Missing code or code_verifier" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code,
+        code_verifier,
         redirect_uri: "https://apreendasm.lovable.app/canva-callback",
       }),
     });
