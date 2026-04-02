@@ -1,29 +1,32 @@
 
 
-# Centralizar e permitir ajuste de posição da imagem nos cards
+# Mover o quadrado inteiro da imagem (não só o crop interno)
 
 ## Problema
-A imagem no card usa cover-fit com crop centralizado, mas dependendo da imagem, o ponto focal fica cortado (ex: rosto fica pra cima demais). O usuário quer poder ajustar a posição da imagem dentro da área de recorte.
+Os botões ↑↓ atuais mudam o crop *dentro* da área da imagem, mas o quadrado da imagem em si fica sempre colado logo abaixo do texto. O usuário quer poder descer/subir o **bloco inteiro** da imagem no card.
 
 ## Solução
 
-Adicionar um controle de **posição vertical (offset Y)** por slide, permitindo mover a imagem para cima/baixo dentro da área de crop.
+Mudar o significado do `offsetY` para deslocar a **posição Y do quadrado da imagem** no canvas, em vez de alterar o crop interno.
 
-### Alterações em `src/pages/CardGenerator.tsx`
+### Alteração em `src/pages/CardGenerator.tsx`
 
-1. **Novo estado `imageOffsets`** — `Record<number, number>` que armazena o offset Y de cada slide (0 = centralizado, -1 = topo, +1 = base)
+**Na função `renderCard`** (~linha 204):
+- Atualmente: `const imgY = cursorY;`
+- Novo: `const imgY = cursorY + offsetY;` onde `offsetY` é em pixels (ex: incrementos de 20px)
+- O crop interno volta a ser sempre centralizado (remover o ajuste de `sy`)
+- Clampar `imgY` entre `cursorY` e `CANVAS_H - imgPadding - imgH` para não sair do canvas
 
-2. **Controles de posição na UI** — Dois botões (↑ / ↓) ao lado do botão de upload para ajustar o offset em incrementos de 0.1
+**Nos botões ↑↓** (~linhas de onClick):
+- Mudar incremento de `0.1` para `20` (pixels)
+- Mudar limites de `[-1, 1]` para `[-200, 400]` (range em pixels)
 
-3. **Ajuste no `renderCard`** — Usar o offset para deslocar o `sy` (source Y) do `drawImage`, movendo qual parte da imagem é visível dentro do crop:
-   - `sy` atual centraliza: `sy = (slideImg.height - sh) / 2`
-   - Com offset: `sy = (slideImg.height - sh) / 2 + offset * (slideImg.height - sh) / 2`
-   - Clamped entre 0 e `slideImg.height - sh`
+**No crop da imagem** (~linha 216-222):
+- Reverter o `sy` para centralizado fixo: `sy = (slideImg.height - sh) / 2`
+- Remover uso de `offsetY` no cálculo de crop
 
-4. **Assinatura do `renderCard`** atualizada para receber `offsetY: number`
-
-### UX
-- Botões ↑↓ aparecem apenas quando há imagem no slide
-- Offset padrão = 0 (centralizado)
-- A cada clique, ajusta 10% e re-renderiza o canvas em tempo real
+### Resultado
+- Botões ↑↓ movem o bloco visual inteiro para cima/baixo
+- A imagem dentro do bloco fica sempre centralizada (cover-fit)
+- O espaço entre texto e imagem fica ajustável
 
