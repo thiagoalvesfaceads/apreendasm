@@ -128,6 +128,20 @@ export default function ContentEngine() {
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
 
+  const updateSlide = (slideNumber: number, field: string, value: string) => {
+    if (!result?.carousel?.slides) return;
+    const updated = {
+      ...result,
+      carousel: {
+        ...result.carousel,
+        slides: result.carousel.slides.map((s: any) =>
+          s.slide_number === slideNumber ? { ...s, [field]: value } : s
+        ),
+      },
+    };
+    setResult(updated);
+  };
+
   const handleLoadPasted = () => {
     try {
       const parsed = JSON.parse(pasteJson.trim());
