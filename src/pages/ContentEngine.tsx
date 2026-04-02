@@ -25,7 +25,7 @@ const GOAL_OPTIONS = [
 ] as const;
 
 const TONE_OPTIONS = [
-  ["reflexivo", "Reflexivo"], ["confrontador", "Confrontador"], ["didático", "Didático"], ["emocional", "Emocional"], ["autoridade tranquila", "Autoridade Tranquila"],
+  ["reflexivo", "Reflexivo"], ["confrontador", "Confrontador"], ["didático", "Didático"], ["emocional", "Emocional"], ["autoridade tranquila", "Autoridade Tranquila"], ["card", "Card"],
 ] as const;
 
 const VISUAL_STYLE_OPTIONS = [

@@ -91,6 +91,7 @@ export const TONE_LABELS: Record<ContentTone, string> = {
   didactic: "Didático",
   emotional: "Emocional",
   calm_authority: "Autoridade Calma",
+  card: "Card",
 };
 
 export const VISUAL_STYLE_LABELS: Record<VisualStyle, string> = {
