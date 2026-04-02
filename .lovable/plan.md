@@ -1,41 +1,35 @@
 
+Corrigir o fluxo de Encurtar/Alongar para preservar a diagramação do tom "card", em vez de transformar o body em um bloco único de texto.
 
-# Fix: Negrito com `**` e espaçamento entre parágrafos no Card Generator
+1. `supabase/functions/regenerate-field/index.ts`
+- Reforçar o prompt de regeneração do `body` com regras condicionais baseadas no texto atual:
+  - tom `card`
+  - presença de parágrafos (`\n` / `\n\n`)
+  - presença de `**negrito**`
+  - gancho final com `>`
+- Adicionar um bloco de “REGRAS OBRIGATÓRIAS DE FORMATAÇÃO” para `shorten`, `lengthen` e `regenerate`:
+  - manter múltiplos parágrafos com linha em branco entre eles
+  - nunca juntar tudo em um bloco só
+  - ao encurtar, reduzir dentro da estrutura atual
+  - ao alongar, aprofundar sem virar parede de texto
+  - preservar `**...**` quando já existir
+  - preservar o gancho final com `>` quando já existir
 
-## Problemas
-1. **Negrito não funciona**: O texto com `**palavra**` é renderizado literalmente com os asteriscos no canvas, em vez de aplicar negrito.
-2. **Texto muito junto**: Não há espaçamento extra entre parágrafos — as linhas ficam coladas, tornando a leitura cansativa.
+2. `src/components/results/CarouselTab.tsx`
+- Ajustar a exibição do body para respeitar quebras de linha com `whitespace-pre-wrap`, assim os parágrafos aparecem corretamente também nas visualizações fora do editor.
 
-## Solução
+3. Resultado esperado
+- Depois de clicar em Encurtar/Alongar, o card continua com respiro visual.
+- O texto mantém parágrafos separados, sem ficar embolado.
+- Se o original tiver `**negrito**` e gancho com `>`, isso continua no retorno.
 
-### 1. `src/pages/CardGenerator.tsx` — função `wrapText` + renderização
-
-**Parágrafos com espaçamento:**
-- Na função `wrapText`, ao encontrar um `\n` (quebra de parágrafo), inserir uma linha vazia como marcador.
-- Na renderização (`fillText` loop), quando encontrar a linha vazia, avançar `cursorY` com espaço extra (~0.5× lineHeight) em vez de desenhar texto.
-
-**Negrito com `**`:**
-- Criar uma função `drawFormattedLine` que processa cada linha procurando padrões `**texto**`.
-- Para cada segmento:
-  - Texto normal: fonte regular
-  - Texto entre `**...**`: fonte bold
-- Usa `measureText` para posicionar cada segmento sequencialmente na mesma linha.
-- Substituir todos os `ctx.fillText(line, ...)` por chamadas a `drawFormattedLine`.
-
-### Detalhe técnico da renderização de negrito
+## Detalhe técnico
 ```text
-Entrada: "receba seu **mapa estratégico personalizado**."
+Detectar no body atual:
+- hasParagraphs = /\n\s*\n/.test(slide.body)
+- hasBold = /\*\*.+?\*\*/.test(slide.body)
+- hasHook = slide.body.trimEnd().endsWith(">")
+- isCardTone = tone === "card"
 
-Segmentos parseados:
-  1. "receba seu "        → font normal
-  2. "mapa estratégico personalizado"  → font bold  
-  3. "."                  → font normal
-
-Cada segmento é desenhado com fillText na posição X atual,
-e X avança por measureText(segmento).width
+Esses sinais viram instruções condicionais no prompt da edge function.
 ```
-
-### Resultado
-- `**texto**` renderiza em negrito no canvas (sem asteriscos visíveis)
-- Parágrafos têm espaçamento visual entre si, melhorando a leitura
-
