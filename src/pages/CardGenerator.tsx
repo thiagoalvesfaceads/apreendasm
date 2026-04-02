@@ -27,15 +27,37 @@ function getProfileImageUrl() {
   return data.publicUrl;
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, lineHeight: number): string[] {
+function stripBold(text: string): string {
+  return text.replace(/\*\*(.*?)\*\*/g, "$1");
+}
+
+function measureFormattedWidth(ctx: CanvasRenderingContext2D, text: string, normalFont: string, boldFont: string): number {
+  let width = 0;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  for (const part of parts) {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      ctx.font = boldFont;
+      width += ctx.measureText(part.slice(2, -2)).width;
+    } else {
+      ctx.font = normalFont;
+      width += ctx.measureText(part).width;
+    }
+  }
+  return width;
+}
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, lineHeight: number, normalFont: string, boldFont: string): string[] {
   const lines: string[] = [];
   const paragraphs = text.split("\n");
-  for (const para of paragraphs) {
+  for (let pi = 0; pi < paragraphs.length; pi++) {
+    if (pi > 0) lines.push("__PARAGRAPH_BREAK__");
+    const para = paragraphs[pi];
+    if (!para.trim()) continue;
     const words = para.split(" ");
     let current = "";
     for (const word of words) {
       const test = current ? `${current} ${word}` : word;
-      if (ctx.measureText(test).width > maxWidth && current) {
+      if (measureFormattedWidth(ctx, test, normalFont, boldFont) > maxWidth && current) {
         lines.push(current);
         current = word;
       } else {
@@ -45,6 +67,26 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
     if (current) lines.push(current);
   }
   return lines;
+}
+
+function drawFormattedLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, normalFont: string, boldFont: string, color: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  let curX = x;
+  for (const part of parts) {
+    if (!part) continue;
+    if (part.startsWith("**") && part.endsWith("**")) {
+      const inner = part.slice(2, -2);
+      ctx.font = boldFont;
+      ctx.fillStyle = color;
+      ctx.fillText(inner, curX, y);
+      curX += ctx.measureText(inner).width;
+    } else {
+      ctx.font = normalFont;
+      ctx.fillStyle = color;
+      ctx.fillText(part, curX, y);
+      curX += ctx.measureText(part).width;
+    }
+  }
 }
 
 function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
