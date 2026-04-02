@@ -298,12 +298,13 @@ async function renderCard(
 
     // --- Generated image ---
     const imgPadding = PADDING;
-    const imgW = CANVAS_W - imgPadding * 2;
+    const baseW = CANVAS_W - imgPadding * 2;
+    const imgW = baseW * scale;
     const availableH = CANVAS_H - cursorY - imgPadding;
-    const imgH = Math.min(availableH, imgW * 0.75);
+    const imgH = Math.min(availableH * scale, imgW * 0.75);
     const maxImgY = CANVAS_H - imgPadding - imgH;
     const imgY = Math.max(cursorY, Math.min(maxImgY, cursorY + offsetY));
-    const imgX = imgPadding;
+    const imgX = imgPadding + (baseW - imgW) / 2;
     const radius = 20;
 
     ctx.save();
