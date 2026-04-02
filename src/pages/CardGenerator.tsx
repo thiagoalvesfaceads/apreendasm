@@ -456,13 +456,22 @@ export default function CardGenerator() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {slides.map((slide) => (
             <div key={slide.slide_number} className="space-y-3">
-              <div className="border border-border rounded-xl overflow-hidden bg-card">
+              <div className="relative border border-border rounded-xl overflow-hidden bg-card">
                 <canvas
                   ref={(el) => { canvasRefs.current[slide.slide_number] = el; }}
                   width={CANVAS_W}
                   height={CANVAS_H}
                   className="w-full h-auto"
                 />
+                {generatedImages[slide.slide_number] && (
+                  <button
+                    onClick={() => removeImage(slide.slide_number)}
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-7 h-7 flex items-center justify-center transition-colors"
+                    title="Remover imagem"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button
