@@ -51,6 +51,31 @@ export function ResultsView({
 }: ResultsViewProps) {
   const tabs = TAB_CONFIG[content.input.format];
   const [activeTab, setActiveTab] = useState(tabs[0].key);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const { user } = useAuth();
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error("Faça login para salvar na biblioteca");
+      return;
+    }
+    setSaving(true);
+    const title = content.reels?.title || content.carousel?.title || "Sem título";
+    const { error } = await supabase.from("generations").insert({
+      title,
+      format: content.input.format,
+      niche: content.input.niche,
+      content: content as unknown as Record<string, unknown>,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+    } else {
+      setSaved(true);
+      toast.success("Salvo na biblioteca!");
+    }
+  };
 
   const caption = content.reels?.caption || content.carousel?.caption || "";
   const cta = content.reels?.cta || content.carousel?.cta || "";
