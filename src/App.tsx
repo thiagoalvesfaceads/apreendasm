@@ -52,6 +52,14 @@ const App = () => (
             }
           />
           <Route
+            path="/card-generator"
+            element={
+              <ProtectedRoute>
+                <CardGenerator />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/canva-callback"
             element={
               <ProtectedRoute>
