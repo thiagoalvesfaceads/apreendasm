@@ -1,25 +1,36 @@
 
 
-# Fix: Cards 2 e 4 não renderizam negrito corretamente
+# Melhoria: Gerar prompts visuais a partir da copy final
 
 ## Problema
 
-O modelo AI às vezes retorna marcações de negrito inconsistentes — por exemplo, `*"texto"*` (asterisco simples) em vez de `**texto**` (duplo). O código de renderização no canvas (`drawFormattedLine`, `measureFormattedWidth`, `wrapText`) só reconhece `**...**`, então variações são exibidas como texto cru.
+Hoje, o `generate-content` gera o `visual_prompt` de cada slide **junto com o texto** numa única chamada. Isso faz com que os prompts visuais sejam genéricos e desconexos do conteúdo real dos cards — a IA está tentando criar tudo ao mesmo tempo.
 
 ## Solução
 
-Adicionar uma função de normalização de markdown em `src/pages/CardGenerator.tsx` que é aplicada ao body de cada slide **antes** da renderização no canvas:
+Adicionar uma **segunda etapa** no fluxo: após gerar o conteúdo textual (estratégia + slides), fazer uma chamada adicional à IA para gerar visual prompts **baseados na copy final** de cada slide.
 
-1. Converter `*texto*` (itálico simples) para `**texto**` (negrito) — no contexto de cards, toda ênfase deve ser negrito
-2. Limpar padrões malformados como `**"texto"**` → `**texto**`  
-3. Remover asteriscos órfãos que não fecham
+### Fluxo novo
 
-### Arquivo: `src/pages/CardGenerator.tsx`
+```text
+1. generate-content → estratégia + slides (texto)
+2. [NOVO] Para cada slide, gerar visual_prompt usando título + body + estratégia como contexto
+```
 
-Criar função `normalizeMarkdownBold(text: string): string` que:
-- Converte `*texto*` (não-duplo) para `**texto**`
-- Remove aspas internas desnecessárias dentro de negritos
-- É chamada no body do slide antes de passar para `wrapText` e `drawFormattedLine`
+### Implementação
 
-Aplicar também no `measureFormattedWidth` para manter consistência entre medição e desenho.
+**`supabase/functions/generate-content/index.ts`**:
+
+1. Adicionar um novo system prompt `VISUAL_PROMPT_SYSTEM` especializado em criar prompts visuais a partir de copy finalizada — com instruções de cena, composição, iluminação, estilo, coerência entre slides
+2. Após receber o JSON do carrossel, fazer uma segunda chamada à IA enviando todos os slides (título, body, role, emotional_goal) + estratégia + visual_style, pedindo um array de visual_prompts
+3. Substituir os visual_prompts originais pelos novos, mais contextuais
+4. Para slides com `visual_prompt: "none"` (CTA), manter como está
+
+### Detalhes técnicos
+
+- A segunda chamada recebe o contexto completo: estratégia, tom, nicho, estilo visual, e **todo o texto final** de cada slide
+- O prompt instrui a IA a criar imagens que complementem visualmente a narrativa, não que repitam o texto
+- Mantém coerência estética entre slides (mesma paleta, ambiente, sujeito)
+- Não afeta o fluxo de Reels (scene_suggestions continuam como estão)
+- Custo: uma chamada extra por geração de carrossel (trade-off aceitável pela qualidade)
 
