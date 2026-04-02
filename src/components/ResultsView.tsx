@@ -133,7 +133,7 @@ export function ResultsView({
           {content.reels?.title || content.carousel?.title || "Conteúdo Gerado"}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {content.input.format === "reels" ? "Reels" : "Carrossel"} · {content.input.niche}
+          {format === "reels" ? "Reels" : "Carrossel"} · {content.input?.niche || ""}
         </p>
       </div>
 
