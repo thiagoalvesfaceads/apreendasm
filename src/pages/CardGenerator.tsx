@@ -148,6 +148,7 @@ async function renderCard(
   avatarImg: HTMLImageElement | null,
   slideImg: HTMLImageElement | null,
   offsetY: number = 0,
+  scale: number = 1.0,
 ) {
   const ctx = canvas.getContext("2d")!;
   canvas.width = CANVAS_W;
