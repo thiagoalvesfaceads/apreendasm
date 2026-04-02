@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -52,6 +52,7 @@ interface FormState {
 
 export default function ContentEngine() {
   const { isAdmin, signOut, user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [canvaConnected, setCanvaConnected] = useState(false);
   const [canvaLoading, setCanvaLoading] = useState(false);
@@ -490,7 +491,16 @@ export default function ContentEngine() {
                 {tabLabels[t] || t}
               </button>
             ))}
-            <div className="ml-auto flex items-center">
+            <div className="ml-auto flex items-center gap-2">
+              {result.carousel?.slides && (
+                <Button variant="secondary" size="sm" className="text-xs h-8 gap-1.5"
+                  onClick={() => {
+                    localStorage.setItem("card_generator_slides", JSON.stringify(result.carousel.slides));
+                    navigate("/card-generator");
+                  }}>
+                  <LayoutGrid className="w-3.5 h-3.5" /> Criar Cards Visuais
+                </Button>
+              )}
               <Button variant="ghost" size="sm" onClick={() => { setResult(null); setImages({}); }}
                 className="text-xs text-muted-foreground h-8">
                 ← Nova geração
