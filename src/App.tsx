@@ -51,6 +51,14 @@ const App = () => (
             }
           />
           <Route
+            path="/canva-callback"
+            element={
+              <ProtectedRoute>
+                <CanvaCallback />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/users"
             element={
               <ProtectedRoute requireAdmin>
