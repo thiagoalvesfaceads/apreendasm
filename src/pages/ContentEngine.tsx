@@ -100,6 +100,7 @@ export default function ContentEngine() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [regeneratingField, setRegeneratingField] = useState<string | null>(null);
   const [mode, setMode] = useState<"generate" | "paste">("generate");
   const [pasteJson, setPasteJson] = useState("");
   const [pasteGenerateImages, setPasteGenerateImages] = useState(false);
