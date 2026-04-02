@@ -1,19 +1,26 @@
 
 
-# Fix: botão Gemini bloqueado pelo navegador
+# Fix: Encurtar/Alongar não mantém gancho com seta ">"
 
 ## Problema
-O `window.open()` é chamado depois de `await navigator.clipboard.writeText()`. Quando o clipboard demora, o navegador perde o contexto de "ação do usuário" e bloqueia o pop-up.
+Os prompts de `shorten` e `lengthen` na edge function `regenerate-field` não mencionam a regra do tom "Card": cada slide (exceto o último) deve terminar com uma frase-gancho curta seguida de `>` para instigar continuação.
 
-## Solucao
+## Solução
 
-### `src/pages/ContentEngine.tsx`
-No onClick do botão "Gerar imagens no Gemini", inverter a ordem:
-1. **Primeiro** `window.open(url, "_blank")` — ainda dentro do contexto síncrono do clique
-2. **Depois** `navigator.clipboard.writeText(...)` — pode ser async sem problema
+### `supabase/functions/regenerate-field/index.ts`
+Adicionar a instrução do gancho com seta nos 3 prompts de body (`regenerate`, `shorten`, `lengthen`):
 
-Mesma mudanca em `src/components/results/VisualPromptsTab.tsx` se o botão existir lá também.
+> "IMPORTANTE: Se este NÃO for o último slide, o texto DEVE terminar com uma frase-gancho curta seguida de '>' (ex: 'te explico o seguinte >'). Essa frase instiga a leitura do próximo card."
 
-### Resultado
-Pop-up nunca será bloqueado porque `window.open` executa sincronamente no handler do clique.
+Essa regra será condicional no user prompt — o slide já envia `slide_number` e o total de slides pode ser inferido, ou simplesmente instruir a IA a manter o gancho se o texto original já tiver um `>` no final.
+
+Abordagem mais simples: verificar se o body atual do slide termina com `>` e, se sim, adicionar ao prompt do sistema a instrução de manter esse padrão.
+
+### Detalhe técnico
+No bloco `userPrompt` (já existente), adicionar uma linha condicional:
+```
+${slide.body?.trimEnd().endsWith(">") ? "REGRA: O texto atual termina com uma frase-gancho + '>'. Mantenha esse padrão no resultado." : ""}
+```
+
+Isso garante que ao encurtar ou alongar, a IA preserva o gancho com seta quando ele existia no original.
 
