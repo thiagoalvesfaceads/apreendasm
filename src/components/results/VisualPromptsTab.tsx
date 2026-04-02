@@ -1,6 +1,7 @@
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { CarouselSlide, ReelsContent } from "@/types/content";
 
 interface VisualPromptsTabProps {
