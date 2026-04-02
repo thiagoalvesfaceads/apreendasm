@@ -299,12 +299,6 @@ export default function CardGenerator() {
     }
   }, [slides]);
 
-  // Auto-generate images when slides load (only if no cached images)
-  useEffect(() => {
-    if (slides.length > 0 && Object.keys(generatedImages).length === 0 && !loadingImages) {
-      generateImages();
-    }
-  }, [slides]);
 
   // Load generated image HTMLImageElements
   useEffect(() => {
