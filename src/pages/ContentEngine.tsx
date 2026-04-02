@@ -88,7 +88,7 @@ export default function ContentEngine() {
   const [form, setForm] = useState<FormState>({
     idea: "", format: "carrossel", goal: "descoberta",
     awareness: "frio", tone: "reflexivo", niche: "",
-    offer: "", cards: "7", generateImages: true,
+    offer: "", cards: "7", generateImages: false,
     visualStyle: "editorial premium", aiProvider: "google",
   });
 
@@ -127,6 +127,20 @@ export default function ContentEngine() {
 
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
+
+  const updateSlide = (slideNumber: number, field: string, value: string) => {
+    if (!result?.carousel?.slides) return;
+    const updated = {
+      ...result,
+      carousel: {
+        ...result.carousel,
+        slides: result.carousel.slides.map((s: any) =>
+          s.slide_number === slideNumber ? { ...s, [field]: value } : s
+        ),
+      },
+    };
+    setResult(updated);
+  };
 
   const handleLoadPasted = () => {
     try {
@@ -611,13 +625,37 @@ export default function ContentEngine() {
                 <div key={slide.slide_number} className="bg-card border border-border rounded-xl p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">{slide.slide_number}</div>
-                    <div>
-                      <div className="font-semibold text-sm">{slide.title}</div>
-                      <div className="text-xs text-primary uppercase tracking-wider">{slide.role}</div>
-                    </div>
+                    <div className="text-xs text-primary uppercase tracking-wider">{slide.role}</div>
                   </div>
-                  <div className="text-sm leading-relaxed mb-2">{slide.body}</div>
-                  <div className="text-xs text-muted-foreground italic">🎯 {slide.emotional_goal}</div>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Título</label>
+                      <input
+                        className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
+                        value={slide.title}
+                        onChange={(e) => updateSlide(slide.slide_number, "title", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Corpo</label>
+                      <textarea
+                        className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        rows={3}
+                        value={slide.body}
+                        onChange={(e) => updateSlide(slide.slide_number, "body", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prompt Visual</label>
+                      <textarea
+                        className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono text-muted-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                        rows={2}
+                        value={slide.visual_prompt}
+                        onChange={(e) => updateSlide(slide.slide_number, "visual_prompt", e.target.value)}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground italic">🎯 {slide.emotional_goal}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -665,7 +703,12 @@ export default function ContentEngine() {
                       <Copy className="w-3 h-3" />
                     </Button>
                   </div>
-                  <div className="text-xs text-muted-foreground leading-relaxed">{slide.visual_prompt}</div>
+                  <textarea
+                    className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono text-muted-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    rows={3}
+                    value={slide.visual_prompt}
+                    onChange={(e) => updateSlide(slide.slide_number, "visual_prompt", e.target.value)}
+                  />
                 </div>
               ))}
               {form.format === "reels" && result.reels?.scene_suggestions?.map((scene: string, i: number) => (
@@ -691,20 +734,16 @@ export default function ContentEngine() {
                   <div className="text-sm text-muted-foreground">Gerando imagens...</div>
                 </div>
               )}
-              {!loadingImages && Object.keys(images).length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p className="mb-4">Nenhuma imagem gerada ainda.</p>
-                  {result.carousel?.slides && (
-                    <Button variant="secondary" onClick={() => handleGenerateImages(result.carousel.slides)} className="gap-2">
-                      <RefreshCw className="w-4 h-4" /> Gerar Imagens Agora
-                    </Button>
-                  )}
-                </div>
-              )}
+              <div className="flex justify-end mb-4">
+                {result.carousel?.slides && (
+                  <Button variant="secondary" size="sm" onClick={() => handleGenerateImages(result.carousel.slides)} className="gap-1.5 text-xs">
+                    <RefreshCw className="w-3.5 h-3.5" /> Gerar Todas
+                  </Button>
+                )}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {result.carousel?.slides?.map((slide: any) => {
                   const img = images[slide.slide_number];
-                  if (!img && !loadingImages) return null;
                   return (
                     <div key={slide.slide_number} className="bg-card border border-border rounded-xl overflow-hidden">
                       <div className="aspect-square bg-background flex items-center justify-center">
@@ -722,7 +761,7 @@ export default function ContentEngine() {
                         <div className="text-xs font-semibold text-primary mb-1">Card {slide.slide_number}</div>
                         <div className="text-xs text-muted-foreground mb-2 line-clamp-2">{slide.title}</div>
                         <Button variant="secondary" size="sm" className="w-full gap-1 h-7 text-xs" onClick={() => handleRegenerateSlide(slide)}>
-                          <RefreshCw className="w-3 h-3" /> Regenerar
+                          <RefreshCw className="w-3 h-3" /> {img && img !== "loading" && img !== "error" ? "Regenerar" : "Gerar"}
                         </Button>
                       </div>
                     </div>
