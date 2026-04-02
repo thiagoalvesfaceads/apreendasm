@@ -519,6 +519,10 @@ export default function ContentEngine() {
                     if (Object.keys(images).length > 0) {
                       localStorage.setItem("card_generator_images", JSON.stringify(images));
                     }
+                    sessionStorage.setItem("content_engine_result", JSON.stringify(result));
+                    sessionStorage.setItem("content_engine_images", JSON.stringify(images));
+                    sessionStorage.setItem("content_engine_form", JSON.stringify(form));
+                    sessionStorage.setItem("content_engine_tab", activeTab);
                     navigate("/card-generator");
                   }}>
                   <LayoutGrid className="w-3.5 h-3.5" /> Criar Cards Visuais
