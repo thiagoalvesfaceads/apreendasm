@@ -3,7 +3,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -100,6 +100,7 @@ export default function ContentEngine() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [regeneratingField, setRegeneratingField] = useState<string | null>(null);
   const [mode, setMode] = useState<"generate" | "paste">("generate");
   const [pasteJson, setPasteJson] = useState("");
   const [pasteGenerateImages, setPasteGenerateImages] = useState(false);
@@ -140,6 +141,35 @@ export default function ContentEngine() {
       },
     };
     setResult(updated);
+  };
+
+  const handleRegenerateField = async (slideNumber: number, field: string, action: string) => {
+    const slide = result?.carousel?.slides?.find((s: any) => s.slide_number === slideNumber);
+    if (!slide) return;
+    const key = `${slideNumber}-${field}-${action}`;
+    setRegeneratingField(key);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("regenerate-field", {
+        body: {
+          field,
+          action,
+          slide,
+          strategy: result.strategy,
+          tone: TONE_MAP[form.tone] || form.tone,
+          niche: form.niche,
+        },
+      });
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      if (data?.value) {
+        updateSlide(slideNumber, field, data.value);
+        toast.success("Campo atualizado!");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao regenerar campo.");
+    } finally {
+      setRegeneratingField(null);
+    }
   };
 
   const handleLoadPasted = () => {
@@ -629,7 +659,18 @@ export default function ContentEngine() {
                   </div>
                   <div className="space-y-2">
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Título</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Título</label>
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-5 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                          disabled={!!regeneratingField}
+                          onClick={() => handleRegenerateField(slide.slide_number, "title", "regenerate")}
+                        >
+                          {regeneratingField === `${slide.slide_number}-title-regenerate` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                          Regerar
+                        </Button>
+                      </div>
                       <input
                         className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
                         value={slide.title}
@@ -637,7 +678,36 @@ export default function ContentEngine() {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Corpo</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Corpo</label>
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-5 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                          disabled={!!regeneratingField}
+                          onClick={() => handleRegenerateField(slide.slide_number, "body", "regenerate")}
+                        >
+                          {regeneratingField === `${slide.slide_number}-body-regenerate` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                          Regerar
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-5 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                          disabled={!!regeneratingField}
+                          onClick={() => handleRegenerateField(slide.slide_number, "body", "shorten")}
+                        >
+                          {regeneratingField === `${slide.slide_number}-body-shorten` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Minus className="w-3 h-3" />}
+                          Encurtar
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-5 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                          disabled={!!regeneratingField}
+                          onClick={() => handleRegenerateField(slide.slide_number, "body", "lengthen")}
+                        >
+                          {regeneratingField === `${slide.slide_number}-body-lengthen` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                          Alongar
+                        </Button>
+                      </div>
                       <textarea
                         className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                         rows={3}
@@ -646,7 +716,18 @@ export default function ContentEngine() {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prompt Visual</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Prompt Visual</label>
+                        <Button
+                          variant="ghost" size="sm"
+                          className="h-5 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                          disabled={!!regeneratingField}
+                          onClick={() => handleRegenerateField(slide.slide_number, "visual_prompt", "regenerate")}
+                        >
+                          {regeneratingField === `${slide.slide_number}-visual_prompt-regenerate` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                          Regerar
+                        </Button>
+                      </div>
                       <textarea
                         className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono text-muted-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                         rows={2}
