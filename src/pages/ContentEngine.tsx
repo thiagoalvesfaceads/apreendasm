@@ -88,7 +88,7 @@ export default function ContentEngine() {
   const [form, setForm] = useState<FormState>({
     idea: "", format: "carrossel", goal: "descoberta",
     awareness: "frio", tone: "reflexivo", niche: "",
-    offer: "", cards: "7", generateImages: true,
+    offer: "", cards: "7", generateImages: false,
     visualStyle: "editorial premium", aiProvider: "google",
   });
 
