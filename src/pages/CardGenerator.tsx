@@ -232,7 +232,7 @@ export default function CardGenerator() {
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
   const [rendered, setRendered] = useState(false);
 
-  // Load slides from localStorage
+  // Load slides and cached images from localStorage
   useEffect(() => {
     const raw = localStorage.getItem("card_generator_slides");
     if (!raw) {
@@ -242,6 +242,23 @@ export default function CardGenerator() {
     try {
       const parsed = JSON.parse(raw) as SlideData[];
       setSlides(parsed);
+
+      // Check for pre-generated images from ContentEngine
+      const cachedImages = localStorage.getItem("card_generator_images");
+      if (cachedImages) {
+        try {
+          const parsedImages = JSON.parse(cachedImages) as Record<string, string>;
+          const validImages: Record<number, string> = {};
+          Object.entries(parsedImages).forEach(([k, v]) => {
+            if (v && v !== "loading" && v !== "error") validImages[Number(k)] = v;
+          });
+          if (Object.keys(validImages).length > 0) {
+            setGeneratedImages(validImages);
+            localStorage.removeItem("card_generator_images");
+            return;
+          }
+        } catch {}
+      }
     } catch {
       toast.error("Erro ao ler dados dos slides.");
     }
@@ -282,7 +299,7 @@ export default function CardGenerator() {
     }
   }, [slides]);
 
-  // Auto-generate images when slides load
+  // Auto-generate images when slides load (only if no cached images)
   useEffect(() => {
     if (slides.length > 0 && Object.keys(generatedImages).length === 0 && !loadingImages) {
       generateImages();
@@ -309,23 +326,19 @@ export default function CardGenerator() {
     return () => { cancelled = true; };
   }, [generatedImages]);
 
-  // Render canvases when everything is ready
+  // Render canvases — re-render whenever slides, avatar or slide images change
   useEffect(() => {
     if (slides.length === 0) return;
-    const allImgsLoaded = Object.keys(generatedImages).length > 0 && Object.keys(slideImgs).length >= Object.keys(generatedImages).length;
-    // Render even without images (just text)
-    if (!loadingImages || allImgsLoaded) {
-      let anyRendered = false;
-      slides.forEach((slide) => {
-        const canvas = canvasRefs.current[slide.slide_number];
-        if (canvas) {
-          renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null);
-          anyRendered = true;
-        }
-      });
-      if (anyRendered) setRendered(true);
-    }
-  }, [slides, avatarImg, slideImgs, loadingImages, generatedImages]);
+    let anyRendered = false;
+    slides.forEach((slide) => {
+      const canvas = canvasRefs.current[slide.slide_number];
+      if (canvas) {
+        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null);
+        anyRendered = true;
+      }
+    });
+    if (anyRendered) setRendered(true);
+  }, [slides, avatarImg, slideImgs]);
 
   const downloadCard = (slideNumber: number) => {
     const canvas = canvasRefs.current[slideNumber];
