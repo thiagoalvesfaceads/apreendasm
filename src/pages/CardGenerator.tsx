@@ -232,7 +232,7 @@ export default function CardGenerator() {
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
   const [rendered, setRendered] = useState(false);
 
-  // Load slides from localStorage
+  // Load slides and cached images from localStorage
   useEffect(() => {
     const raw = localStorage.getItem("card_generator_slides");
     if (!raw) {
@@ -242,6 +242,23 @@ export default function CardGenerator() {
     try {
       const parsed = JSON.parse(raw) as SlideData[];
       setSlides(parsed);
+
+      // Check for pre-generated images from ContentEngine
+      const cachedImages = localStorage.getItem("card_generator_images");
+      if (cachedImages) {
+        try {
+          const parsedImages = JSON.parse(cachedImages) as Record<string, string>;
+          const validImages: Record<number, string> = {};
+          Object.entries(parsedImages).forEach(([k, v]) => {
+            if (v && v !== "loading" && v !== "error") validImages[Number(k)] = v;
+          });
+          if (Object.keys(validImages).length > 0) {
+            setGeneratedImages(validImages);
+            localStorage.removeItem("card_generator_images");
+            return;
+          }
+        } catch {}
+      }
     } catch {
       toast.error("Erro ao ler dados dos slides.");
     }
@@ -282,7 +299,7 @@ export default function CardGenerator() {
     }
   }, [slides]);
 
-  // Auto-generate images when slides load
+  // Auto-generate images when slides load (only if no cached images)
   useEffect(() => {
     if (slides.length > 0 && Object.keys(generatedImages).length === 0 && !loadingImages) {
       generateImages();
