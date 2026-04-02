@@ -424,19 +424,19 @@ export default function CardGenerator() {
     return () => { cancelled = true; };
   }, [generatedImages]);
 
-  // Render canvases — re-render whenever slides, avatar, slide images or offsets change
+  // Render canvases — re-render whenever slides, avatar, slide images, offsets or scales change
   useEffect(() => {
     if (slides.length === 0) return;
     let anyRendered = false;
     slides.forEach((slide) => {
       const canvas = canvasRefs.current[slide.slide_number];
       if (canvas) {
-        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null, imageOffsets[slide.slide_number] || 0);
+        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null, imageOffsets[slide.slide_number] || 0, imageScales[slide.slide_number] || 1.0);
         anyRendered = true;
       }
     });
     if (anyRendered) setRendered(true);
-  }, [slides, avatarImg, slideImgs, imageOffsets]);
+  }, [slides, avatarImg, slideImgs, imageOffsets, imageScales]);
 
   const handleImageUpload = useCallback((slideNumber: number, file: File) => {
     const reader = new FileReader();
