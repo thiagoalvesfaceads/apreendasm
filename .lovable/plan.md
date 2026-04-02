@@ -1,45 +1,34 @@
 
 
-# Card Generator — Nova Página /card-generator
+# Fix: Imagens geradas não aparecem nos cards
 
-## Visão geral
+## Problema identificado
 
-Criar uma página que recebe os slides do Content Engine via `localStorage`, renderiza cada card no formato 1080x1440px usando HTML Canvas, gera imagens via edge function, e permite download individual ou em lote.
+A edge function `generate-images` está dando **timeout** ao processar 7 imagens sequencialmente. Cada imagem leva ~10-15s para gerar + 2.5s de delay entre elas, totalizando ~2 minutos — excedendo o limite de execução. Os logs de rede mostram "Failed to fetch" nas chamadas do Card Generator.
 
-## Arquivos a criar/editar
+Além disso, o ContentEngine já chama `generate-images` com `visual_style` antes de navegar, e depois o CardGenerator chama novamente — duplicando o trabalho.
 
-### 1. `src/pages/CardGenerator.tsx` (novo)
+## Solução
 
-Página principal com a lógica:
+### 1. `supabase/functions/generate-images/index.ts` — processar em paralelo com timeout maior
 
-- **Leitura dos dados**: ao montar, lê `localStorage.getItem("card_generator_slides")` (JSON com array de slides: `slide_number`, `title`, `body`, `visual_prompt`)
-- **Foto de perfil**: carrega do Supabase Storage `generated-images/profile/thiago.jpg` via `getPublicUrl`
-- **Geração de imagens**: chama `supabase.functions.invoke("generate-images")` com os `visual_prompt` de cada slide
-- **Canvas rendering**: para cada card, usa um `<canvas>` de 1080x1440:
-  - Fundo `#000000`
-  - Avatar circular (60px) com borda azul `#3b82f6` no topo esquerdo
-  - Nome "Thiago Alcântara Alves" em branco bold + ícone verificado azul (desenhado no canvas)
-  - "@thiagoalcantaraalves" em cinza abaixo
-  - Contador "1/N" em pill cinza transparente no canto superior direito
-  - Texto do card em branco, fonte grande, frases curtas
-  - Imagem gerada embaixo do texto com bordas arredondadas (clip path)
-- **Botão "Baixar PNG"**: `canvas.toDataURL("image/png")` → download link
-- **Botão "Baixar Todos"**: itera todos os canvas e baixa sequencialmente com pequeno delay
+- Processar as imagens em batches de 3 em paralelo (usando `Promise.allSettled`) em vez de 1 por vez sequencialmente
+- Reduzir o delay entre batches para 1s
+- Isso reduz o tempo total de ~2min para ~40s
 
-### 2. `src/App.tsx` (editar)
+### 2. `src/pages/CardGenerator.tsx` — corrigir race condition no rendering
 
-Adicionar rota protegida `/card-generator` importando `CardGenerator`.
+- Ajustar a lógica do `useEffect` de rendering para garantir que re-renderiza corretamente quando `slideImgs` atualiza
+- Remover a condição `!loadingImages || allImgsLoaded` que causa render prematuro sem imagens
+- Separar: renderizar texto imediatamente, re-renderizar quando imagens carregam
 
-### 3. `src/pages/ContentEngine.tsx` (editar)
+### 3. `src/pages/CardGenerator.tsx` — reutilizar imagens já geradas
 
-Após gerar carrossel (quando `result.carousel` existe), adicionar botão **"Criar Cards Visuais"** na área de resultados que:
-- Salva `result.carousel.slides` em `localStorage.setItem("card_generator_slides", JSON.stringify(...))`
-- Navega para `/card-generator` via `useNavigate`
+- Verificar se o ContentEngine já salvou URLs de imagens no localStorage junto com os slides
+- Se já existirem, pular a geração e usar diretamente
 
-## Detalhes técnicos
-
-- A foto de perfil (`profile/thiago.jpg`) precisa ser uploaded manualmente ao bucket `generated-images`. O código apenas referencia a URL pública.
-- Canvas usa `CanvasRenderingContext2D` para desenhar. Para carregar imagens externas (avatar, imagem gerada), usa `new Image()` com `crossOrigin = "anonymous"`.
-- Para bordas arredondadas na imagem, usa `ctx.clip()` com `roundRect`.
-- Download usa `document.createElement('a')` com `href = canvas.toDataURL()`.
+## Arquivos alterados
+- `supabase/functions/generate-images/index.ts` — paralelizar geração em batches de 3
+- `src/pages/CardGenerator.tsx` — corrigir rendering e reutilizar imagens existentes
+- `src/pages/ContentEngine.tsx` — salvar URLs de imagens geradas no localStorage junto com slides
 
