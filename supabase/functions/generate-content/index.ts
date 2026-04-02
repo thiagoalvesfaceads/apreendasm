@@ -251,6 +251,10 @@ Crie um roteiro envolvente seguindo a estrutura Hook > Contexto > Conflito > Con
 
       content = await callAI(ai_provider, REELS_SYSTEM, reelsPrompt);
     } else {
+      const cardToneInstruction = tone === "card"
+        ? `\n\nINSTRUÇÃO ESPECIAL — TOM "CARD":\nCada slide deve ter um body EXTENSO com 3 a 6 parágrafos narrativos densos. Use storytelling, frases de impacto e progressão emocional. O estilo é de posts de autoridade no Instagram — como se cada card fosse um micro-post completo. Cada parágrafo deve ter peso próprio. Não use frases genéricas ou superficiais. Escreva como Alfredo Soares, Gary Vee ou grandes criadores de conteúdo de autoridade. Cada card deve provocar reflexão profunda.`
+        : "";
+
       const carouselPrompt = `Com base nesta estratégia, crie o conteúdo completo para um carrossel de ${cards} slides:
 
 ESTRATÉGIA:
@@ -270,7 +274,7 @@ CONTEXTO ORIGINAL:
 - Estilo Visual: ${visual_style}
 ${offer ? `- Oferta: ${offer}` : ""}
 
-Crie exatamente ${cards} slides seguindo a estrutura definida. Cada slide deve ter um visual_prompt rico e coerente com o estilo visual "${visual_style}".`;
+Crie exatamente ${cards} slides seguindo a estrutura definida. Cada slide deve ter um visual_prompt rico e coerente com o estilo visual "${visual_style}".${cardToneInstruction}`;
 
       content = await callAI(ai_provider, CAROUSEL_SYSTEM, carouselPrompt);
     }
