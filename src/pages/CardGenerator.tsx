@@ -241,10 +241,12 @@ async function renderCard(
   if (isTextOnly) {
     // --- Text-only mode: vertically centered ---
     const maxTextW = CANVAS_W - PADDING * 2;
+    const normalizedTitle = normalizeMarkdownBold(slide.title);
+    const normalizedBody = normalizeMarkdownBold(slide.body);
     ctx.font = titleNormalFont;
-    const titleLines = wrapText(ctx, slide.title, maxTextW, titleLineHeight, titleNormalFont, titleBoldFont);
+    const titleLines = wrapText(ctx, normalizedTitle, maxTextW, titleLineHeight, titleNormalFont, titleBoldFont);
     ctx.font = bodyNormalFont;
-    const bodyLines = wrapText(ctx, slide.body, maxTextW, bodyLineHeight, bodyNormalFont, bodyBoldFont);
+    const bodyLines = wrapText(ctx, normalizedBody, maxTextW, bodyLineHeight, bodyNormalFont, bodyBoldFont);
 
     let totalTextH = 30;
     for (const line of titleLines) {
