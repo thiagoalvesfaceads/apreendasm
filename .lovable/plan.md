@@ -1,37 +1,25 @@
 
 
-# Limitar parágrafos do tom "card" — regra corrigida
+# Fix: Regra do gancho `>` faltando no regenerate-field
 
-## Regra de tamanho
+## Problema
 
-- **Maioria dos slides**: máximo 2 parágrafos (+ gancho `>`)
-- **Slide do meio** (literal: se 5 slides → slide 3; se 7 → slide 4; se par → o mais próximo do último): até 3 parágrafos
-- **Último slide (CTA)**: até 3 parágrafos
+No `generate-content`, a regra é clara: "Cada card (EXCETO o último) DEVE terminar com uma frase-gancho curta seguida de `>`". Mas no `regenerate-field`, o `FORMAT_RULES_CARD` diz apenas "Se houver uma frase-gancho..." — condicional, não obrigatório. Quando o usuário encurta ou regenera, o modelo pode remover o gancho.
 
-## Arquivos a alterar
+## Solução
 
-### 1. `supabase/functions/generate-content/index.ts` (linha ~254)
+### `supabase/functions/regenerate-field/index.ts` — `FORMAT_RULES_CARD`
 
-Substituir "3 a 6 parágrafos narrativos densos" pela nova regra posicional:
+Adicionar regra explícita obrigatória:
 
 ```
-TAMANHO DO BODY:
-- A MAIORIA dos slides deve ter no máximo 2 parágrafos densos
-- Apenas o slide central (se 5 slides → slide 3, se 7 → slide 4, se par → o mais próximo do último) pode ter até 3 parágrafos
-- O último slide (CTA) pode ter até 3 parágrafos
-- O gancho de transição (">") conta como parágrafo separado
-- NUNCA exceda esses limites. Priorize impacto por frase, não volume.
+GANCHO DE TRANSIÇÃO:
+- Se NÃO for o último slide, o body DEVE terminar com uma frase-gancho curta seguida de ">" em parágrafo separado
+- Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "mas tem um detalhe >"
+- Se FOR o último slide (CTA), NÃO incluir gancho
 ```
 
-Manter todo o resto (storytelling, autoridade, negrito, gancho `>`, formatação).
+Também ajustar a linha existente que diz "Se houver uma frase-gancho..." para "A frase-gancho DEVE estar em seu próprio parágrafo separado e terminar com `>`".
 
-### 2. `supabase/functions/regenerate-field/index.ts` — `FORMAT_RULES_CARD` (linha ~14)
-
-Adicionar a mesma regra de limite ao bloco de formatação para que `Encurtar`, `Alongar` e `Regenerar` respeitem:
-
-```
-- Máximo 2 parágrafos para a maioria dos slides; até 3 apenas para o slide central e o último (CTA)
-```
-
-O slide number e total de slides já são passados no contexto do prompt, então o modelo saberá qual é o slide central.
+O slide number já é passado no contexto, e o modelo pode inferir se é o último pelo papel (CTA) ou pelo número.
 
