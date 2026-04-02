@@ -307,6 +307,22 @@ export default function ContentEngine() {
           <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-muted-foreground text-xs h-7 px-2">
             <LogOut className="w-3 h-3" /> Sair
           </Button>
+          {canvaConnected ? (
+            <span className="inline-flex items-center gap-1 text-xs text-green-500 font-medium px-2 h-7">
+              <CheckCircle className="w-3 h-3" /> Canva
+            </span>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleConnectCanva}
+              disabled={canvaLoading}
+              className="gap-1 text-muted-foreground text-xs h-7 px-2"
+            >
+              <ExternalLink className="w-3 h-3" />
+              {canvaLoading ? "Conectando..." : "Conectar Canva"}
+            </Button>
+          )}
         </div>
 
         {/* Sidebar mode tabs */}
