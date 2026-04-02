@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      generations: {
+        Row: {
+          content: Json
+          created_at: string
+          format: string
+          id: string
+          niche: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          format?: string
+          id?: string
+          niche?: string
+          title?: string
+          user_id?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          format?: string
+          id?: string
+          niche?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approved: boolean
