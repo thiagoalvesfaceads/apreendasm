@@ -6,28 +6,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ANTI_CONTAMINATION = `
+REGRA CRÍTICA: Responda APENAS com o texto solicitado. 
+NÃO inclua NENHUMA label, metadado ou estrutura do prompt como: "SLIDE #", "Papel:", "Título atual:", "Corpo atual:", "Objetivo emocional:", "Prompt visual:", "ESTRATÉGIA", "Big Idea:", "Dor/Desejo/Tensão:", "Promessa:", "Nicho:", "Tom:", etc.
+Sua resposta deve conter SOMENTE o texto final, sem aspas, sem explicação, sem labels.`;
+
+const FORMAT_RULES_CARD = `
+FORMATAÇÃO OBRIGATÓRIA:
+- Separe cada parágrafo com duas quebras de linha (\\n\\n) dentro do texto
+- Use **negrito** (markdown) nas frases de maior impacto emocional, insights-chave e palavras de autoridade
+- NUNCA retorne o texto como um bloco único corrido
+- Se houver uma frase-gancho de transição no final, ela DEVE estar em seu próprio parágrafo separado e terminar com ">"`;
+
 const SYSTEM_PROMPTS: Record<string, Record<string, string>> = {
   title: {
     regenerate: `Você é um copywriter de alto nível. Gere um NOVO título curto, impactante e estratégico para um slide de carrossel de rede social.
 Considere o papel do slide (hook, tensão, insight, etc.), o corpo do texto e o objetivo emocional.
-Responda APENAS com o texto do novo título, sem aspas, sem explicação.`,
+${ANTI_CONTAMINATION}`,
   },
   body: {
     regenerate: `Você é um copywriter de alto nível. Gere um NOVO corpo de texto para um slide de carrossel de rede social.
 Mantenha o mesmo papel (role), objetivo emocional e tom. O texto deve ser envolvente, não genérico, com progressão emocional.
-Responda APENAS com o novo corpo de texto, sem aspas, sem explicação.`,
-    shorten: `Você é um editor de textos expert. Encurte o texto abaixo, tornando-o mais conciso e direto, sem perder a essência e o impacto emocional.
+${ANTI_CONTAMINATION}`,
+    shorten: `Você é um editor de textos expert. Encurte o texto fornecido, tornando-o mais conciso e direto, sem perder a essência e o impacto emocional.
 Mantenha o tom e o objetivo emocional. Reduza em aproximadamente 30-50%.
-Responda APENAS com o texto encurtado, sem aspas, sem explicação.`,
-    lengthen: `Você é um copywriter de alto nível. Expanda o texto abaixo, aprofundando os argumentos, adicionando storytelling, frases de impacto e mais camadas emocionais.
+${ANTI_CONTAMINATION}`,
+    lengthen: `Você é um copywriter de alto nível. Expanda o texto fornecido, aprofundando os argumentos, adicionando storytelling, frases de impacto e mais camadas emocionais.
 Mantenha o tom e o objetivo emocional. Aumente em aproximadamente 50-100%.
-Responda APENAS com o texto expandido, sem aspas, sem explicação.`,
+${ANTI_CONTAMINATION}`,
   },
   visual_prompt: {
     regenerate: `Você é um diretor de arte digital. Gere um NOVO prompt visual para geração de imagem de um slide de carrossel.
 O prompt deve ser rico, descritivo, com cena, ambiente, sujeito, emoção, composição, iluminação. Aspecto 1:1. Estética premium, não genérica.
 Considere o conteúdo do slide para criar uma imagem coerente.
-Responda APENAS com o novo prompt visual, sem aspas, sem explicação.`,
+${ANTI_CONTAMINATION}`,
   },
 };
 
@@ -144,6 +156,58 @@ async function callAI(provider: Provider, system: string, userPrompt: string): P
   }
 }
 
+function buildUserPrompt(field: string, action: string, slide: any, strategy: any, tone: string, niche: string): string {
+  const isCard = tone === "card";
+  const isBodyAction = field === "body";
+
+  // For body shorten/lengthen, use delimited structure to prevent metadata contamination
+  if (isBodyAction && (action === "shorten" || action === "lengthen")) {
+    const actionLabel = action === "shorten" ? "ENCURTAR" : "EXPANDIR";
+    let prompt = `---TEXTO A ${actionLabel}---
+${slide.body}
+---FIM DO TEXTO---
+
+Contexto auxiliar (NÃO incluir na resposta, use apenas como referência de tom e estilo):
+- Slide #${slide.slide_number}, Papel: ${slide.role}
+- Título: ${slide.title}
+- Objetivo emocional: ${slide.emotional_goal}
+- Tom: ${tone || "N/A"}, Nicho: ${niche || "N/A"}`;
+
+    if (isCard) {
+      prompt += `\n\n${FORMAT_RULES_CARD}`;
+    }
+
+    return prompt;
+  }
+
+  // For regenerate actions, also use clear separation
+  let prompt = `Contexto auxiliar (NÃO incluir na resposta, use apenas como referência):
+- Slide #${slide.slide_number}, Papel: ${slide.role}
+- Título: ${slide.title}
+- Corpo: ${slide.body}
+- Objetivo emocional: ${slide.emotional_goal}
+- Prompt visual atual: ${slide.visual_prompt || "nenhum"}
+- Big Idea: ${strategy?.big_idea || "N/A"}
+- Dor/Desejo/Tensão: ${strategy?.pain_desire_tension || "N/A"}
+- Promessa: ${strategy?.promise || "N/A"}
+- Tom: ${tone || "N/A"}, Nicho: ${niche || "N/A"}
+
+`;
+
+  if (field === "title") {
+    prompt += "Gere um novo TÍTULO para este slide.";
+  } else if (field === "body") {
+    prompt += "Gere um novo CORPO para este slide.";
+    if (isCard) {
+      prompt += `\n\n${FORMAT_RULES_CARD}`;
+    }
+  } else if (field === "visual_prompt") {
+    prompt += "Gere um novo PROMPT VISUAL para este slide.";
+  }
+
+  return prompt;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -159,7 +223,7 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = SYSTEM_PROMPTS[field]?.[action];
+    let systemPrompt = SYSTEM_PROMPTS[field]?.[action];
     if (!systemPrompt) {
       return new Response(JSON.stringify({ error: `Invalid field/action: ${field}/${action}` }), {
         status: 400,
@@ -167,47 +231,12 @@ serve(async (req) => {
       });
     }
 
-    const hasParagraphs = /\n\s*\n/.test(slide.body || "");
-    const hasBold = /\*\*.+?\*\*/.test(slide.body || "");
-    const hasHook = (slide.body || "").trimEnd().endsWith(">");
-
-    let formatRules = "";
-    if (hasParagraphs || hasBold || hasHook) {
-      const rules: string[] = [];
-      if (hasParagraphs) {
-        rules.push("- O texto atual tem MÚLTIPLOS PARÁGRAFOS separados por linhas em branco (\\n\\n). Você DEVE manter essa estrutura. NUNCA junte tudo em um bloco só. Cada parágrafo deve continuar separado por uma linha em branco.");
-        rules.push("- Ao encurtar: reduza DENTRO da estrutura de parágrafos atual, mantendo a separação.");
-        rules.push("- Ao alongar: aprofunde os parágrafos existentes ou adicione novos, mas NUNCA transforme em uma parede de texto contínua.");
-      }
-      if (hasBold) {
-        rules.push("- O texto atual usa **negrito** (marcadores **). Você DEVE preservar esse padrão. Mantenha as palavras/frases importantes em **negrito**.");
-      }
-      if (hasHook) {
-        rules.push("- O texto atual termina com uma frase-gancho curta seguida de '>'. Você DEVE manter esse padrão — o texto final DEVE terminar com uma frase-gancho curta + '>' (ex: 'te explico o seguinte >').");
-      }
-      formatRules = `\n\nREGRAS OBRIGATÓRIAS DE FORMATAÇÃO (NÃO IGNORAR):\n${rules.join("\n")}`;
+    // For card tone, always append format rules to body system prompts
+    if (tone === "card" && field === "body") {
+      systemPrompt += `\n\n${FORMAT_RULES_CARD}`;
     }
 
-    const userPrompt = `SLIDE #${slide.slide_number}
-Papel: ${slide.role}
-Título atual: ${slide.title}
-Corpo atual: ${slide.body}
-Objetivo emocional: ${slide.emotional_goal}
-Prompt visual atual: ${slide.visual_prompt || "nenhum"}
-
-ESTRATÉGIA:
-- Big Idea: ${strategy?.big_idea || "N/A"}
-- Dor/Desejo/Tensão: ${strategy?.pain_desire_tension || "N/A"}
-- Promessa: ${strategy?.promise || "N/A"}
-
-Nicho: ${niche || "N/A"}
-Tom: ${tone || "N/A"}
-
-${action === "shorten" ? "Encurte o CORPO do slide acima." : ""}
-${action === "lengthen" ? "Expanda e aprofunde o CORPO do slide acima." : ""}
-${action === "regenerate" && field === "title" ? "Gere um novo TÍTULO para o slide acima." : ""}
-${action === "regenerate" && field === "body" ? "Gere um novo CORPO para o slide acima." : ""}
-${action === "regenerate" && field === "visual_prompt" ? "Gere um novo PROMPT VISUAL para o slide acima." : ""}${formatRules}`;
+    const userPrompt = buildUserPrompt(field, action, slide, strategy, tone || "", niche || "");
 
     const value = await callAI(ai_provider as Provider, systemPrompt, userPrompt);
 
