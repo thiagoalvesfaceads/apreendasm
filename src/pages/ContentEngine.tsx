@@ -703,7 +703,12 @@ export default function ContentEngine() {
                       <Copy className="w-3 h-3" />
                     </Button>
                   </div>
-                  <div className="text-xs text-muted-foreground leading-relaxed">{slide.visual_prompt}</div>
+                  <textarea
+                    className="w-full bg-secondary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono text-muted-foreground leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    rows={3}
+                    value={slide.visual_prompt}
+                    onChange={(e) => updateSlide(slide.slide_number, "visual_prompt", e.target.value)}
+                  />
                 </div>
               ))}
               {form.format === "reels" && result.reels?.scene_suggestions?.map((scene: string, i: number) => (
