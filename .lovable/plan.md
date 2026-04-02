@@ -1,72 +1,34 @@
 
 
-# Integração OAuth do Canva — Edge Function + Página de Callback
+# Adicionar botão "Conectar ao Canva" no Content Engine
 
-## Visão geral
-Criar o fluxo completo de OAuth do Canva: uma Edge Function que troca o authorization code por tokens e uma página frontend que orquestra o processo.
+## O que será feito
 
-## 1. Tabela para armazenar tokens
+Adicionar um botão "Conectar ao Canva" na sidebar do Content Engine que inicia o fluxo OAuth do Canva. O botão verifica se o usuário já está conectado (consultando `canva_tokens`) e mostra o estado apropriado.
 
-Nova migration para criar `canva_tokens`:
+## Alterações
 
-```sql
-CREATE TABLE public.canva_tokens (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL DEFAULT auth.uid(),
-  access_token text NOT NULL,
-  refresh_token text NOT NULL,
-  expires_at timestamptz NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(user_id)
-);
+### `src/pages/ContentEngine.tsx`
 
-ALTER TABLE public.canva_tokens ENABLE ROW LEVEL SECURITY;
+1. **Estado de conexão Canva**: Adicionar estado `canvaConnected` e um `useEffect` que consulta `canva_tokens` para verificar se o usuário já tem tokens válidos. Também detectar `?canva=connected` na URL para atualizar o estado após callback.
 
-CREATE POLICY "Users can read own canva tokens"
-  ON public.canva_tokens FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
+2. **Função `handleConnectCanva`**: Redireciona para a URL de autorização do Canva:
+   ```
+   https://www.canva.com/api/oauth/authorize
+     ?client_id={CANVA_CLIENT_ID}
+     &redirect_uri=https://apreendasm.lovable.app/canva-callback
+     &response_type=code
+     &scope=design:content:read design:content:write
+     &state={random}
+   ```
+   O `CANVA_CLIENT_ID` precisa estar disponível no frontend — será adicionado como variável de ambiente `VITE_CANVA_CLIENT_ID`.
 
-CREATE POLICY "Users can upsert own canva tokens"
-  ON public.canva_tokens FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+3. **Botão na sidebar**: Ao lado dos links existentes (Biblioteca, Sair), adicionar botão com ícone do Canva. Se conectado, mostrar "Canva ✓" em verde; se não, "Conectar Canva".
 
-CREATE POLICY "Users can update own canva tokens"
-  ON public.canva_tokens FOR UPDATE TO authenticated
-  USING (user_id = auth.uid());
-```
+### Variável de ambiente
 
-## 2. Edge Function `canva-callback`
-
-Arquivo: `supabase/functions/canva-callback/index.ts`
-
-- Recebe POST com `{ code, user_id }` (ou extrai user do JWT)
-- Faz POST para `https://api.canva.com/rest/v1/oauth/token` com:
-  - `grant_type: authorization_code`
-  - `code`
-  - `redirect_uri: https://apreendasm.lovable.app/canva-callback`
-  - Authorization header: Basic base64(CANVA_CLIENT_ID:CANVA_CLIENT_SECRET)
-- Faz upsert na tabela `canva_tokens` com access_token, refresh_token, expires_at
-- Retorna JSON de sucesso
-- Inclui CORS headers em todas as respostas
-
-## 3. Página Frontend `/canva-callback`
-
-Arquivo: `src/pages/CanvaCallback.tsx`
-
-- Extrai `code` e `state` dos query params
-- Mostra spinner/loading
-- Chama a Edge Function via `supabase.functions.invoke("canva-callback", { body: { code } })`
-- Em caso de sucesso, redireciona para `/content-engine?canva=connected`
-- Em caso de erro, mostra mensagem e link para tentar novamente
-
-## 4. Rota no App.tsx
-
-Adicionar rota `/canva-callback` dentro de `ProtectedRoute` (o usuário precisa estar logado para vincular o token ao seu user_id).
+- Precisaremos que o `CANVA_CLIENT_ID` esteja disponível no frontend via `VITE_CANVA_CLIENT_ID` (o client ID não é segredo, é público no OAuth). Será necessário adicionar como secret com prefixo `VITE_`.
 
 ## Arquivos alterados
-- `supabase/migrations/` — nova migration (canva_tokens)
-- `supabase/functions/canva-callback/index.ts` — nova edge function
-- `src/pages/CanvaCallback.tsx` — nova página
-- `src/App.tsx` — nova rota
+- `src/pages/ContentEngine.tsx` — botão + lógica de verificação/conexão
 
