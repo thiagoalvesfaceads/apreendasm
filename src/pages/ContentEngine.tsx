@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ArrowLeft, ClipboardPaste } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ArrowLeft, ClipboardPaste, CheckCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Maps PT-BR form values → EN values expected by edge functions
@@ -37,7 +37,50 @@ interface FormState {
 }
 
 export default function ContentEngine() {
-  const { isAdmin, signOut } = useAuth();
+  const { isAdmin, signOut, user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [canvaConnected, setCanvaConnected] = useState(false);
+  const [canvaLoading, setCanvaLoading] = useState(false);
+
+  // Check Canva connection status
+  useEffect(() => {
+    if (!user) return;
+
+    // Detect callback success
+    if (searchParams.get("canva") === "connected") {
+      setCanvaConnected(true);
+      toast.success("Canva conectado com sucesso!");
+      searchParams.delete("canva");
+      setSearchParams(searchParams, { replace: true });
+      return;
+    }
+
+    // Check existing tokens
+    supabase
+      .from("canva_tokens")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setCanvaConnected(true);
+      });
+  }, [user]);
+
+  const handleConnectCanva = async () => {
+    setCanvaLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("canva-auth-url");
+      if (error || !data?.url) {
+        toast.error("Erro ao iniciar conexão com Canva.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      toast.error("Erro ao conectar com Canva.");
+    } finally {
+      setCanvaLoading(false);
+    }
+  };
 
   const [form, setForm] = useState<FormState>({
     idea: "", format: "carrossel", goal: "descoberta",
@@ -264,6 +307,22 @@ export default function ContentEngine() {
           <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-muted-foreground text-xs h-7 px-2">
             <LogOut className="w-3 h-3" /> Sair
           </Button>
+          {canvaConnected ? (
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 h-7 text-emerald-500 dark:text-emerald-400">
+              <CheckCircle className="w-3 h-3" /> Canva
+            </span>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleConnectCanva}
+              disabled={canvaLoading}
+              className="gap-1 text-muted-foreground text-xs h-7 px-2"
+            >
+              <ExternalLink className="w-3 h-3" />
+              {canvaLoading ? "Conectando..." : "Conectar Canva"}
+            </Button>
+          )}
         </div>
 
         {/* Sidebar mode tabs */}
