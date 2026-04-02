@@ -78,7 +78,7 @@ export default function ContentEngine() {
     try {
       const { data, error } = await supabase.functions.invoke("canva-auth-url");
       if (error || !data?.url) { toast.error("Erro ao iniciar conexão com Canva."); return; }
-      window.location.href = data.url;
+      window.open(data.url, '_blank');
     } catch { toast.error("Erro ao conectar com Canva."); }
     finally { setCanvaLoading(false); }
   };
