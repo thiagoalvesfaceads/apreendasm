@@ -36,9 +36,9 @@ export function VisualPromptsTab({ prompts, labels }: VisualPromptsTabProps) {
       <Button
         className="w-full gap-2 mt-2"
         onClick={() => {
+          window.open("https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt", "_blank");
           navigator.clipboard.writeText(prompts.join("\n\n---\n\n"));
           toast.success("Prompts copiados! Cole no Gemini (Ctrl+V)");
-          window.open("https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt", "_blank");
         }}
       >
         <Sparkles className="w-4 h-4" />

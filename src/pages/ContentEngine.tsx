@@ -809,9 +809,9 @@ export default function ContentEngine() {
                   const allPrompts = (result.carousel?.slides || result.reels?.scene_suggestions || [])
                     .map((s: any, i: number) => s.visual_prompt ? `Card ${s.slide_number || i + 1}: ${s.visual_prompt}` : s)
                     .join("\n\n");
-                  copy(allPrompts);
-                  toast.success("Prompts copiados! Cole no Gemini (Ctrl+V)");
-                  window.open("https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt", "_blank");
+                   window.open("https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt", "_blank");
+                   copy(allPrompts);
+                   toast.success("Prompts copiados! Cole no Gemini (Ctrl+V)");
                 }}
               >
                 <Sparkles className="w-4 h-4" />
