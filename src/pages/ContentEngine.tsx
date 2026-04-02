@@ -496,6 +496,9 @@ export default function ContentEngine() {
                 <Button variant="secondary" size="sm" className="text-xs h-8 gap-1.5"
                   onClick={() => {
                     localStorage.setItem("card_generator_slides", JSON.stringify(result.carousel.slides));
+                    if (Object.keys(images).length > 0) {
+                      localStorage.setItem("card_generator_images", JSON.stringify(images));
+                    }
                     navigate("/card-generator");
                   }}>
                   <LayoutGrid className="w-3.5 h-3.5" /> Criar Cards Visuais

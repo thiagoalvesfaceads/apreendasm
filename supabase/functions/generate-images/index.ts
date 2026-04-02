@@ -11,6 +11,78 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function generateSingleImage(
+  prompt: string,
+  index: number,
+  visual_style: string | undefined,
+  apiKey: string,
+  supabase: any,
+  timestamp: number,
+): Promise<string | null> {
+  const styleHint = visual_style ? ` Style: ${visual_style}.` : "";
+  const fullPrompt = `Generate an image: ${prompt}.${styleHint} High quality, professional, suitable for Instagram carousel. Do not include any text in the image.`;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await delay(1500);
+
+    try {
+      const aiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+          }),
+        }
+      );
+
+      if (!aiResponse.ok) {
+        const status = aiResponse.status;
+        const text = await aiResponse.text();
+        console.error(`Google AI error for prompt ${index} (attempt ${attempt}):`, status, text);
+        if (status === 429) break;
+        continue;
+      }
+
+      const data = await aiResponse.json();
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
+
+      if (!imagePart) {
+        console.warn(`No image in response for prompt ${index} (attempt ${attempt}), retrying...`);
+        continue;
+      }
+
+      const base64 = imagePart.inlineData.data;
+      const mimeType = imagePart.inlineData.mimeType;
+      const ext = mimeType === "image/jpeg" ? "jpg" : "png";
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+      const filePath = `${timestamp}_${index}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("generated-images")
+        .upload(filePath, bytes, { contentType: mimeType, upsert: true });
+
+      if (uploadError) {
+        console.error(`Upload error for prompt ${index}:`, uploadError);
+        return null;
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from("generated-images")
+        .getPublicUrl(filePath);
+
+      return publicUrl.publicUrl;
+    } catch (err) {
+      console.error(`Error processing prompt ${index} (attempt ${attempt}):`, err);
+    }
+  }
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,78 +111,29 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const timestamp = Date.now();
-    const urls: (string | null)[] = [];
+    const urls: (string | null)[] = new Array(prompts.length).fill(null);
 
-    for (let i = 0; i < prompts.length; i++) {
-      if (i > 0) await delay(2500);
+    // Process in batches of 3
+    const BATCH_SIZE = 3;
+    for (let batchStart = 0; batchStart < prompts.length; batchStart += BATCH_SIZE) {
+      if (batchStart > 0) await delay(1000);
 
-      const styleHint = visual_style ? ` Style: ${visual_style}.` : "";
-      const fullPrompt = `Generate an image: ${prompts[i]}.${styleHint} High quality, professional, suitable for Instagram carousel. Do not include any text in the image.`;
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, prompts.length);
+      const batchPromises: Promise<{ index: number; url: string | null }>[] = [];
 
-      // Try up to 2 times since gemini-2.0-flash-exp sometimes doesn't return an image
-      let imageUrl: string | null = null;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        if (attempt > 0) await delay(1500);
-
-        try {
-          const aiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${GOOGLE_AI_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: fullPrompt }] }],
-                generationConfig: {
-                  responseModalities: ["TEXT", "IMAGE"],
-                },
-              }),
-            }
-          );
-
-          if (!aiResponse.ok) {
-            const status = aiResponse.status;
-            const text = await aiResponse.text();
-            console.error(`Google AI error for prompt ${i} (attempt ${attempt}):`, status, text);
-            if (status === 429) break; // don't retry on rate limit
-            continue;
-          }
-
-          const data = await aiResponse.json();
-          const parts = data.candidates?.[0]?.content?.parts || [];
-          const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
-
-          if (!imagePart) {
-            console.warn(`No image in response for prompt ${i} (attempt ${attempt}), retrying...`);
-            continue;
-          }
-
-          const base64 = imagePart.inlineData.data;
-          const mimeType = imagePart.inlineData.mimeType;
-          const ext = mimeType === "image/jpeg" ? "jpg" : "png";
-          const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-
-          const filePath = `${timestamp}_${i}.${ext}`;
-          const { error: uploadError } = await supabase.storage
-            .from("generated-images")
-            .upload(filePath, bytes, { contentType: mimeType, upsert: true });
-
-          if (uploadError) {
-            console.error(`Upload error for prompt ${i}:`, uploadError);
-            break;
-          }
-
-          const { data: publicUrl } = supabase.storage
-            .from("generated-images")
-            .getPublicUrl(filePath);
-
-          imageUrl = publicUrl.publicUrl;
-          break; // success, no need to retry
-        } catch (err) {
-          console.error(`Error processing prompt ${i} (attempt ${attempt}):`, err);
-        }
+      for (let i = batchStart; i < batchEnd; i++) {
+        batchPromises.push(
+          generateSingleImage(prompts[i], i, visual_style, GOOGLE_AI_API_KEY, supabase, timestamp)
+            .then((url) => ({ index: i, url }))
+        );
       }
 
-      urls.push(imageUrl);
+      const results = await Promise.allSettled(batchPromises);
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          urls[r.value.index] = r.value.url;
+        }
+      }
     }
 
     return new Response(JSON.stringify({ urls }), {
