@@ -37,7 +37,50 @@ interface FormState {
 }
 
 export default function ContentEngine() {
-  const { isAdmin, signOut } = useAuth();
+  const { isAdmin, signOut, user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [canvaConnected, setCanvaConnected] = useState(false);
+  const [canvaLoading, setCanvaLoading] = useState(false);
+
+  // Check Canva connection status
+  useEffect(() => {
+    if (!user) return;
+
+    // Detect callback success
+    if (searchParams.get("canva") === "connected") {
+      setCanvaConnected(true);
+      toast.success("Canva conectado com sucesso!");
+      searchParams.delete("canva");
+      setSearchParams(searchParams, { replace: true });
+      return;
+    }
+
+    // Check existing tokens
+    supabase
+      .from("canva_tokens")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setCanvaConnected(true);
+      });
+  }, [user]);
+
+  const handleConnectCanva = async () => {
+    setCanvaLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("canva-auth-url");
+      if (error || !data?.url) {
+        toast.error("Erro ao iniciar conexão com Canva.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      toast.error("Erro ao conectar com Canva.");
+    } finally {
+      setCanvaLoading(false);
+    }
+  };
 
   const [form, setForm] = useState<FormState>({
     idea: "", format: "carrossel", goal: "descoberta",
