@@ -49,7 +49,8 @@ export function ResultsView({
   onRegenerateCaption,
   onRegenerateSlide,
 }: ResultsViewProps) {
-  const tabs = TAB_CONFIG[content.input.format];
+  const format = content.input?.format || (content.carousel ? "carousel" : "reels");
+  const tabs = TAB_CONFIG[format as keyof typeof TAB_CONFIG];
   const [activeTab, setActiveTab] = useState(tabs[0].key);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
