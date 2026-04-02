@@ -1,36 +1,29 @@
 
 
-# Adicionar botão "Gerar imagens no Gemini" na página ContentEngine
+# Adicionar tom "Card" ao Content Engine
 
-## Problema
-A página `ContentEngine.tsx` renderiza a aba "Prompts Visuais" inline (linhas 685-725), sem usar o componente `VisualPromptsTab`. O botão foi adicionado apenas ao componente não utilizado.
+## O que é
+Novo tom principal chamado **"Card"** que gera copy mais profunda e extensa por slide — no estilo do Alfredo Soares nas imagens: parágrafos narrativos densos, storytelling progressivo, cada card com várias frases/parágrafos (não só uma frase curta).
 
-## Solução
-Adicionar o botão "Gerar imagens no Gemini" diretamente em `src/pages/ContentEngine.tsx`, logo após a lista de cards de prompts (antes do fechamento da div na linha 725).
+## Alterações
 
-O botão vai:
-1. Copiar todos os prompts para o clipboard
-2. Mostrar toast "Prompts copiados! Cole no Gemini (Ctrl+V)"
-3. Abrir o Gem `https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt` em nova aba
+### 1. `src/types/content.ts`
+- Adicionar `"card"` ao tipo `ContentTone`
+- Adicionar `card: "Card"` ao `TONE_LABELS`
 
-### Arquivo: `src/pages/ContentEngine.tsx`
-Inserir antes da linha 725 (`</div>`):
-```tsx
-<Button
-  className="w-full gap-2 mt-2"
-  onClick={() => {
-    const allPrompts = (result.carousel?.slides || result.reels?.scene_suggestions || [])
-      .map((s: any, i: number) => s.visual_prompt ? `Card ${s.slide_number || i + 1}: ${s.visual_prompt}` : s)
-      .join("\n\n");
-    copy(allPrompts);
-    toast.success("Prompts copiados! Cole no Gemini (Ctrl+V)");
-    window.open("https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt", "_blank");
-  }}
->
-  <Sparkles className="w-4 h-4" />
-  Gerar imagens no Gemini
-</Button>
-```
+### 2. `src/pages/ContentEngine.tsx`
+- Adicionar `["card", "Card"]` ao `TONE_OPTIONS` (linha 28)
+- Adicionar `card: "card"` ao `TONE_MAP` (linha 20)
 
-Também importar `Sparkles` de `lucide-react` se ainda não estiver importado.
+### 3. `src/components/GenerationForm.tsx`
+- Já usa o tipo `ContentTone` dinamicamente, deve funcionar sem mudança
+
+### 4. `supabase/functions/generate-content/index.ts`
+- No `CAROUSEL_SYSTEM`, adicionar instrução condicional para tom "card": quando o tom for "card", o `body` de cada slide deve ser longo (3-6 parágrafos), narrativo, com storytelling, como post de LinkedIn/Instagram de autoridade. Cada card é um micro-texto completo.
+- No prompt do carrossel (linha ~240), passar o tom e adicionar instrução extra quando `tone === "card"`:
+  - "Cada slide deve ter um body extenso com 3 a 6 parágrafos narrativos. Use storytelling, frases de impacto, progressão emocional. O estilo é de posts de autoridade no Instagram — como se cada card fosse um micro-post completo. Não use frases genéricas. Cada parágrafo deve ter peso próprio."
+
+### Resultado
+- Novo tom "Card" aparece no select de tom principal
+- Quando selecionado, a IA gera body muito mais denso e narrativo por slide, no estilo das imagens do Alfredo Soares
 
