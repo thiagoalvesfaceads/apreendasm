@@ -1,35 +1,36 @@
 
 
-# Transformar /app num Dashboard
+# Redesign do Content Engine — Layout Full-Screen
+
+## Problema atual
+
+O Content Engine usa um layout sidebar estreita (w-72) com o formulário espremido e uma área principal quase vazia quando não há resultado. O usuário quer o layout da imagem de referência (image-5.png): formulário centralizado em tela cheia, sem sidebar.
 
 ## O que será feito
 
-Transformar a página `/app` (Index.tsx) num painel inicial (dashboard) com visão geral e atalhos rápidos, removendo a funcionalidade duplicada de geração/colar conteúdo que já existe no Content Engine.
+Reescrever o layout do `ContentEngine.tsx` para usar **tela inteira centralizada**:
 
-## Layout do Dashboard
+### Layout sem resultado (formulário)
+- **Header/Nav** no topo: links (Usuários, Content Engine, Biblioteca, Sair) + botão Canva — em linha, alinhados à direita
+- **Tabs Gerar / Colar Conteúdo** centralizadas abaixo do header
+- **Título** "Content Engine MASTER" centralizado com badge dourado
+- **Formulário** centralizado (max-w-2xl), campos em grid responsivo:
+  - Ideia Bruta: textarea largo
+  - Formato: botões toggle (Reels / Carrossel) — não select
+  - Objetivo + Consciência: lado a lado em 2 colunas
+  - Tom Principal: select
+  - Nicho + Oferta: lado a lado
+  - Número de Cards: botões numéricos (5-10) — não select
+  - Seção de IA: card com Modelo de IA, toggle Gerar Imagens, Estilo Visual
+- **Botão Gerar** largo no final
 
-O dashboard terá:
+### Layout com resultado
+- Tabs de resultado (Estratégia, Carrossel, etc.) no topo
+- Conteúdo centralizado como já está
 
-1. **Header** com saudação ("Olá, [nome]") e botão Sair
-2. **Cards de atalho rápido** em grid:
-   - **Content Engine** — "Gerar novo conteúdo" com ícone Zap, link para `/content-engine`
-   - **Biblioteca** — "X conteúdos salvos" (contagem real da tabela `generations`), link para `/library`
-   - **Canva** — Status de conexão (conectado/desconectado), link para `/content-engine`
-3. **Últimas gerações** — Lista dos 5 últimos conteúdos salvos na biblioteca (da tabela `generations`), com título, formato, data relativa. Clicar abre na biblioteca.
-4. Se admin: card extra de "Gerenciar Usuários" com link para `/admin/users`
-
-## Alterações
-
-### `src/pages/Index.tsx`
-Reescrever completamente: remover toda a lógica de geração/paste e substituir por um dashboard com:
-- Query `generations` para contar total e buscar os 5 mais recentes
-- Query `canva_tokens` para verificar status de conexão
-- Cards em grid responsivo (2-3 colunas)
-- Lista de últimas gerações
-
-### `src/App.tsx`
-Nenhuma mudança necessária — a rota `/app` já aponta para `Index`.
+### Botão Canva
+- Aparece no header/nav junto com os outros links, visível tanto no Content Engine quanto acessível
 
 ## Arquivos alterados
-- `src/pages/Index.tsx` — reescrita completa como dashboard
+- `src/pages/ContentEngine.tsx` — reescrita do layout (mesma lógica, novo template)
 
