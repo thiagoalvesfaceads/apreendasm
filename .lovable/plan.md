@@ -1,16 +1,14 @@
 
 
-# Botão "Gerar no Gemini" na aba Prompts Visuais
+# Botão "Gerar imagens no Gemini" não aparecendo
 
-## Limitação técnica
-Não é possível colar texto automaticamente em sites externos (restrição de segurança do navegador). O que podemos fazer: **copiar todos os prompts para a área de transferência e abrir o Gem** em uma nova aba. O usuário só precisa dar Ctrl+V.
+## Diagnóstico
+O código do botão já está presente em `VisualPromptsTab.tsx` (linhas 37-47). É provável que a alteração anterior não tenha sido aplicada corretamente ao build. 
 
-## Alteração
+## Solução
+Forçar a re-aplicação do arquivo — o conteúdo está correto, só precisa de um "touch" para o hot reload detectar a mudança. Vou re-salvar o arquivo sem alterações de lógica, apenas garantindo que o build pegue.
 
-**`src/components/results/VisualPromptsTab.tsx`**
-
-Adicionar um botão ao final da lista de prompts:
-- Ícone do Gemini (sparkles ou ExternalLink) + texto "Gerar imagens no Gemini"
-- Ao clicar: copia todos os prompts para o clipboard, exibe toast "Prompts copiados! Cole no Gemini (Ctrl+V)", e abre `https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt` em nova aba
-- Estilo: botão primário, destaque visual
+### Arquivo: `src/components/results/VisualPromptsTab.tsx`
+- O botão já está implementado corretamente no código
+- Re-salvar o arquivo para forçar rebuild
 
