@@ -274,8 +274,11 @@ async function renderCard(
     // --- Normal mode with image ---
     cursorY = headerEndY;
 
+    const normalizedTitle = normalizeMarkdownBold(slide.title);
+    const normalizedBody = normalizeMarkdownBold(slide.body);
+
     ctx.font = titleNormalFont;
-    const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, titleLineHeight, titleNormalFont, titleBoldFont);
+    const titleLines = wrapText(ctx, normalizedTitle, CANVAS_W - PADDING * 2, titleLineHeight, titleNormalFont, titleBoldFont);
     for (const line of titleLines) {
       if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
       drawFormattedLine(ctx, line, PADDING, cursorY + titleFontSize, titleNormalFont, titleBoldFont, "#ffffff");
@@ -284,7 +287,7 @@ async function renderCard(
     cursorY += 20;
 
     ctx.font = bodyNormalFont;
-    const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, bodyLineHeight, bodyNormalFont, bodyBoldFont);
+    const bodyLines = wrapText(ctx, normalizedBody, CANVAS_W - PADDING * 2, bodyLineHeight, bodyNormalFont, bodyBoldFont);
     for (const line of bodyLines) {
       if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
       drawFormattedLine(ctx, line, PADDING, cursorY + bodyFontSize, bodyNormalFont, bodyBoldFont, "#e2e8f0");
