@@ -66,7 +66,7 @@ export function ResultsView({
       title,
       format: content.input.format,
       niche: content.input.niche,
-      content: content as unknown as Record<string, unknown>,
+      content: JSON.parse(JSON.stringify(content)),
     }]);
     setSaving(false);
     if (error) {
