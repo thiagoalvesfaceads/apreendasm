@@ -103,6 +103,26 @@ export default function ContentEngine() {
   const [pasteGenerateImages, setPasteGenerateImages] = useState(true);
   const [pasteVisualStyle, setPasteVisualStyle] = useState("clean realista");
 
+  // Restore state from sessionStorage when returning from Card Generator
+  useEffect(() => {
+    const savedResult = sessionStorage.getItem("content_engine_result");
+    if (savedResult) {
+      try {
+        setResult(JSON.parse(savedResult));
+        const savedImages = sessionStorage.getItem("content_engine_images");
+        if (savedImages) setImages(JSON.parse(savedImages));
+        const savedForm = sessionStorage.getItem("content_engine_form");
+        if (savedForm) setForm(JSON.parse(savedForm));
+        const savedTab = sessionStorage.getItem("content_engine_tab");
+        if (savedTab) setActiveTab(savedTab);
+      } catch {}
+      sessionStorage.removeItem("content_engine_result");
+      sessionStorage.removeItem("content_engine_images");
+      sessionStorage.removeItem("content_engine_form");
+      sessionStorage.removeItem("content_engine_tab");
+    }
+  }, []);
+
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
   const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
 
@@ -499,6 +519,10 @@ export default function ContentEngine() {
                     if (Object.keys(images).length > 0) {
                       localStorage.setItem("card_generator_images", JSON.stringify(images));
                     }
+                    sessionStorage.setItem("content_engine_result", JSON.stringify(result));
+                    sessionStorage.setItem("content_engine_images", JSON.stringify(images));
+                    sessionStorage.setItem("content_engine_form", JSON.stringify(form));
+                    sessionStorage.setItem("content_engine_tab", activeTab);
                     navigate("/card-generator");
                   }}>
                   <LayoutGrid className="w-3.5 h-3.5" /> Criar Cards Visuais
