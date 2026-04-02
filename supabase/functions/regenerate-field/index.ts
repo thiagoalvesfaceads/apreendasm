@@ -16,13 +16,19 @@ FORMATAÇÃO OBRIGATÓRIA:
 - Separe cada parágrafo com duas quebras de linha (\\n\\n) dentro do texto
 - Use **negrito** (markdown) nas frases de maior impacto emocional, insights-chave e palavras de autoridade
 - NUNCA retorne o texto como um bloco único corrido
-- Se houver uma frase-gancho de transição no final, ela DEVE estar em seu próprio parágrafo separado e terminar com ">"
+
+GANCHO DE TRANSIÇÃO (OBRIGATÓRIO):
+- Se NÃO for o último slide (CTA), o body DEVE terminar com uma frase-gancho curta seguida de ">" em parágrafo separado
+- Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "mas tem um detalhe >"
+- Se FOR o último slide (CTA), NÃO incluir gancho
+- A frase-gancho DEVE estar em seu próprio parágrafo separado e terminar com ">"
 
 LIMITE DE PARÁGRAFOS:
 - Máximo 2 parágrafos para a maioria dos slides
 - Até 3 parágrafos APENAS para o slide central (se 5 slides → slide 3, se 7 → slide 4, se par → o mais próximo do último) e o último slide (CTA)
 - O gancho de transição (">") conta como parágrafo separado
-- NUNCA exceda esses limites. Priorize impacto por frase, não volume.`;
+- NUNCA exceda esses limites. Priorize impacto por frase, não volume.
+- Estes limites são ABSOLUTOS e se aplicam a TODAS as ações (regenerar, encurtar, alongar).`;
 
 const SYSTEM_PROMPTS: Record<string, Record<string, string>> = {
   title: {
@@ -37,8 +43,9 @@ ${ANTI_CONTAMINATION}`,
     shorten: `Você é um editor de textos expert. Encurte o texto fornecido, tornando-o mais conciso e direto, sem perder a essência e o impacto emocional.
 Mantenha o tom e o objetivo emocional. Reduza em aproximadamente 30-50%.
 ${ANTI_CONTAMINATION}`,
-    lengthen: `Você é um copywriter de alto nível. Expanda o texto fornecido, aprofundando os argumentos, adicionando storytelling, frases de impacto e mais camadas emocionais.
-Mantenha o tom e o objetivo emocional. Aumente em aproximadamente 50-100%.
+    lengthen: `Você é um copywriter de alto nível. Expanda o texto fornecido, aprofundando os argumentos com mais camadas emocionais e storytelling.
+Mantenha o tom e o objetivo emocional. Enriqueça a densidade do texto SEM adicionar parágrafos extras — aprofunde os existentes.
+IMPORTANTE: O limite de parágrafos das regras de formatação é INVIOLÁVEL, mesmo ao expandir.
 ${ANTI_CONTAMINATION}`,
   },
   visual_prompt: {
