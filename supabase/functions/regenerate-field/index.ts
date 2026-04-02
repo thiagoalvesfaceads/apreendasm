@@ -40,8 +40,12 @@ ${ANTI_CONTAMINATION}`,
     regenerate: `Você é um copywriter de alto nível. Gere um NOVO corpo de texto para um slide de carrossel de rede social.
 Mantenha o mesmo papel (role), objetivo emocional e tom. O texto deve ser envolvente, não genérico, com progressão emocional.
 ${ANTI_CONTAMINATION}`,
-    shorten: `Você é um editor de textos expert. Encurte o texto fornecido, tornando-o mais conciso e direto, sem perder a essência e o impacto emocional.
-Mantenha o tom e o objetivo emocional. Reduza em aproximadamente 30-50%.
+    shorten: `Você é um editor de textos expert. Sua ÚNICA tarefa é ENCURTAR o texto fornecido.
+REGRAS OBRIGATÓRIAS:
+- O texto resultante DEVE ser significativamente mais curto que o original (30-50% menor em caracteres)
+- Mantenha a essência, o tom e o impacto emocional
+- NUNCA retorne o texto original sem alterações
+- Se o texto já for curto, ainda assim reduza condensando frases
 ${ANTI_CONTAMINATION}`,
     lengthen: `Você é um copywriter de alto nível. Expanda o texto fornecido, aprofundando os argumentos com mais camadas emocionais e storytelling.
 Mantenha o tom e o objetivo emocional. Enriqueça a densidade do texto SEM adicionar parágrafos extras — aprofunde os existentes.
@@ -251,7 +255,17 @@ serve(async (req) => {
 
     const userPrompt = buildUserPrompt(field, action, slide, strategy, tone || "", niche || "");
 
-    const value = await callAI(ai_provider as Provider, systemPrompt, userPrompt);
+    let value = await callAI(ai_provider as Provider, systemPrompt, userPrompt);
+
+    // For shorten action, verify the result is actually shorter; retry once if not
+    if (action === "shorten" && field === "body" && slide?.body) {
+      const originalLen = slide.body.trim().length;
+      if (value.trim().length >= originalLen) {
+        console.warn(`Shorten did not reduce text (${originalLen} -> ${value.trim().length}), retrying...`);
+        const retryPrompt = `O texto abaixo DEVE ser encurtado. A versão anterior que você gerou tinha ${value.trim().length} caracteres, mas o original tem ${originalLen}. Você DEVE reduzir para no máximo ${Math.round(originalLen * 0.7)} caracteres.\n\n${userPrompt}`;
+        value = await callAI(ai_provider as Provider, systemPrompt, retryPrompt);
+      }
+    }
 
     return new Response(JSON.stringify({ value }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
