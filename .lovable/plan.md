@@ -1,34 +1,24 @@
 
 
-# Fix: Imagens geradas não aparecem nos cards
+# Preservar estado do Content Engine ao navegar para o Card Generator
 
-## Problema identificado
-
-A edge function `generate-images` está dando **timeout** ao processar 7 imagens sequencialmente. Cada imagem leva ~10-15s para gerar + 2.5s de delay entre elas, totalizando ~2 minutos — excedendo o limite de execução. Os logs de rede mostram "Failed to fetch" nas chamadas do Card Generator.
-
-Além disso, o ContentEngine já chama `generate-images` com `visual_style` antes de navegar, e depois o CardGenerator chama novamente — duplicando o trabalho.
+## Problema
+Quando o usuário vai para `/card-generator` e volta, o estado do Content Engine (resultado gerado, imagens, formulário) é perdido porque está todo em `useState` — reseta ao desmontar o componente.
 
 ## Solução
+Salvar o estado completo do Content Engine no `sessionStorage` ao navegar para o Card Generator, e restaurá-lo ao voltar.
 
-### 1. `supabase/functions/generate-images/index.ts` — processar em paralelo com timeout maior
+## Alterações
 
-- Processar as imagens em batches de 3 em paralelo (usando `Promise.allSettled`) em vez de 1 por vez sequencialmente
-- Reduzir o delay entre batches para 1s
-- Isso reduz o tempo total de ~2min para ~40s
+### `src/pages/ContentEngine.tsx`
 
-### 2. `src/pages/CardGenerator.tsx` — corrigir race condition no rendering
+1. **Ao clicar em "Criar Cards Visuais"**: antes de navegar, salvar no `sessionStorage`:
+   - `content_engine_result` → o objeto `result` completo
+   - `content_engine_images` → as imagens geradas
+   - `content_engine_form` → o estado do formulário
+   - `content_engine_tab` → a tab ativa
 
-- Ajustar a lógica do `useEffect` de rendering para garantir que re-renderiza corretamente quando `slideImgs` atualiza
-- Remover a condição `!loadingImages || allImgsLoaded` que causa render prematuro sem imagens
-- Separar: renderizar texto imediatamente, re-renderizar quando imagens carregam
+2. **No `useEffect` de inicialização**: verificar se existe estado salvo no `sessionStorage`. Se sim, restaurar `result`, `images`, `form` e `activeTab`, e limpar o `sessionStorage`.
 
-### 3. `src/pages/CardGenerator.tsx` — reutilizar imagens já geradas
-
-- Verificar se o ContentEngine já salvou URLs de imagens no localStorage junto com os slides
-- Se já existirem, pular a geração e usar diretamente
-
-## Arquivos alterados
-- `supabase/functions/generate-images/index.ts` — paralelizar geração em batches de 3
-- `src/pages/CardGenerator.tsx` — corrigir rendering e reutilizar imagens existentes
-- `src/pages/ContentEngine.tsx` — salvar URLs de imagens geradas no localStorage junto com slides
+Isso garante que ao voltar (botão "Content Engine" no Card Generator), o usuário vê exatamente o que tinha antes — sem precisar regenerar.
 
