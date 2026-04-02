@@ -27,6 +27,15 @@ function getProfileImageUrl() {
   return data.publicUrl;
 }
 
+function normalizeMarkdownBold(text: string): string {
+  // First, convert single *text* (not **) to **text**
+  // Negative lookbehind/lookahead to avoid matching already-double asterisks
+  let result = text.replace(/(?<!\*)\*(?!\*)((?:(?!\*).)+?)\*(?!\*)/g, "**$1**");
+  // Remove unnecessary quotes inside bold markers: **"text"** → **text**
+  result = result.replace(/\*\*[""](.+?)[""]\*\*/g, "**$1**");
+  return result;
+}
+
 function stripBold(text: string): string {
   return text.replace(/\*\*(.*?)\*\*/g, "$1");
 }
