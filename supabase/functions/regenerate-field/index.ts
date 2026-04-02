@@ -255,7 +255,17 @@ serve(async (req) => {
 
     const userPrompt = buildUserPrompt(field, action, slide, strategy, tone || "", niche || "");
 
-    const value = await callAI(ai_provider as Provider, systemPrompt, userPrompt);
+    let value = await callAI(ai_provider as Provider, systemPrompt, userPrompt);
+
+    // For shorten action, verify the result is actually shorter; retry once if not
+    if (action === "shorten" && field === "body" && slide?.body) {
+      const originalLen = slide.body.trim().length;
+      if (value.trim().length >= originalLen) {
+        console.warn(`Shorten did not reduce text (${originalLen} -> ${value.trim().length}), retrying...`);
+        const retryPrompt = `O texto abaixo DEVE ser encurtado. A versão anterior que você gerou tinha ${value.trim().length} caracteres, mas o original tem ${originalLen}. Você DEVE reduzir para no máximo ${Math.round(originalLen * 0.7)} caracteres.\n\n${userPrompt}`;
+        value = await callAI(ai_provider as Provider, systemPrompt, retryPrompt);
+      }
+    }
 
     return new Response(JSON.stringify({ value }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
