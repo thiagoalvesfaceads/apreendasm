@@ -334,6 +334,28 @@ export default function CardGenerator() {
     if (anyRendered) setRendered(true);
   }, [slides, avatarImg, slideImgs]);
 
+  const handleImageUpload = useCallback((slideNumber: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setGeneratedImages((prev) => ({ ...prev, [slideNumber]: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const removeImage = useCallback((slideNumber: number) => {
+    setGeneratedImages((prev) => {
+      const next = { ...prev };
+      delete next[slideNumber];
+      return next;
+    });
+    setSlideImgs((prev) => {
+      const next = { ...prev };
+      delete next[slideNumber];
+      return next;
+    });
+  }, []);
+
   const downloadCard = (slideNumber: number) => {
     const canvas = canvasRefs.current[slideNumber];
     if (!canvas) return;
