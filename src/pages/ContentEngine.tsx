@@ -102,7 +102,7 @@ export default function ContentEngine() {
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<"generate" | "paste">("generate");
   const [pasteJson, setPasteJson] = useState("");
-  const [pasteGenerateImages, setPasteGenerateImages] = useState(true);
+  const [pasteGenerateImages, setPasteGenerateImages] = useState(false);
   const [pasteVisualStyle, setPasteVisualStyle] = useState("clean realista");
 
   // Restore state from sessionStorage when returning from Card Generator
