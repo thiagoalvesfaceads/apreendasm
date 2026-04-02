@@ -12,6 +12,7 @@ import Library from "./pages/Library.tsx";
 import AdminUsers from "./pages/AdminUsers.tsx";
 import ContentEngine from "./pages/ContentEngine.tsx";
 import CanvaCallback from "./pages/CanvaCallback.tsx";
+import CardGenerator from "./pages/CardGenerator.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
