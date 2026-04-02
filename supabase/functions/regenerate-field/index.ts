@@ -16,7 +16,13 @@ FORMATAÇÃO OBRIGATÓRIA:
 - Separe cada parágrafo com duas quebras de linha (\\n\\n) dentro do texto
 - Use **negrito** (markdown) nas frases de maior impacto emocional, insights-chave e palavras de autoridade
 - NUNCA retorne o texto como um bloco único corrido
-- Se houver uma frase-gancho de transição no final, ela DEVE estar em seu próprio parágrafo separado e terminar com ">"`;
+- Se houver uma frase-gancho de transição no final, ela DEVE estar em seu próprio parágrafo separado e terminar com ">"
+
+LIMITE DE PARÁGRAFOS:
+- Máximo 2 parágrafos para a maioria dos slides
+- Até 3 parágrafos APENAS para o slide central (se 5 slides → slide 3, se 7 → slide 4, se par → o mais próximo do último) e o último slide (CTA)
+- O gancho de transição (">") conta como parágrafo separado
+- NUNCA exceda esses limites. Priorize impacto por frase, não volume.`;
 
 const SYSTEM_PROMPTS: Record<string, Record<string, string>> = {
   title: {
