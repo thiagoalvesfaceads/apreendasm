@@ -1,26 +1,41 @@
 
 
-# Fix: Encurtar/Alongar não mantém gancho com seta ">"
+# Fix: Negrito com `**` e espaçamento entre parágrafos no Card Generator
 
-## Problema
-Os prompts de `shorten` e `lengthen` na edge function `regenerate-field` não mencionam a regra do tom "Card": cada slide (exceto o último) deve terminar com uma frase-gancho curta seguida de `>` para instigar continuação.
+## Problemas
+1. **Negrito não funciona**: O texto com `**palavra**` é renderizado literalmente com os asteriscos no canvas, em vez de aplicar negrito.
+2. **Texto muito junto**: Não há espaçamento extra entre parágrafos — as linhas ficam coladas, tornando a leitura cansativa.
 
 ## Solução
 
-### `supabase/functions/regenerate-field/index.ts`
-Adicionar a instrução do gancho com seta nos 3 prompts de body (`regenerate`, `shorten`, `lengthen`):
+### 1. `src/pages/CardGenerator.tsx` — função `wrapText` + renderização
 
-> "IMPORTANTE: Se este NÃO for o último slide, o texto DEVE terminar com uma frase-gancho curta seguida de '>' (ex: 'te explico o seguinte >'). Essa frase instiga a leitura do próximo card."
+**Parágrafos com espaçamento:**
+- Na função `wrapText`, ao encontrar um `\n` (quebra de parágrafo), inserir uma linha vazia como marcador.
+- Na renderização (`fillText` loop), quando encontrar a linha vazia, avançar `cursorY` com espaço extra (~0.5× lineHeight) em vez de desenhar texto.
 
-Essa regra será condicional no user prompt — o slide já envia `slide_number` e o total de slides pode ser inferido, ou simplesmente instruir a IA a manter o gancho se o texto original já tiver um `>` no final.
+**Negrito com `**`:**
+- Criar uma função `drawFormattedLine` que processa cada linha procurando padrões `**texto**`.
+- Para cada segmento:
+  - Texto normal: fonte regular
+  - Texto entre `**...**`: fonte bold
+- Usa `measureText` para posicionar cada segmento sequencialmente na mesma linha.
+- Substituir todos os `ctx.fillText(line, ...)` por chamadas a `drawFormattedLine`.
 
-Abordagem mais simples: verificar se o body atual do slide termina com `>` e, se sim, adicionar ao prompt do sistema a instrução de manter esse padrão.
+### Detalhe técnico da renderização de negrito
+```text
+Entrada: "receba seu **mapa estratégico personalizado**."
 
-### Detalhe técnico
-No bloco `userPrompt` (já existente), adicionar uma linha condicional:
+Segmentos parseados:
+  1. "receba seu "        → font normal
+  2. "mapa estratégico personalizado"  → font bold  
+  3. "."                  → font normal
+
+Cada segmento é desenhado com fillText na posição X atual,
+e X avança por measureText(segmento).width
 ```
-${slide.body?.trimEnd().endsWith(">") ? "REGRA: O texto atual termina com uma frase-gancho + '>'. Mantenha esse padrão no resultado." : ""}
-```
 
-Isso garante que ao encurtar ou alongar, a IA preserva o gancho com seta quando ele existia no original.
+### Resultado
+- `**texto**` renderiza em negrito no canvas (sem asteriscos visíveis)
+- Parágrafos têm espaçamento visual entre si, melhorando a leitura
 
