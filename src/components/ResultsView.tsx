@@ -109,6 +109,16 @@ export function ResultsView({
             <RefreshCw className="w-3.5 h-3.5" />
             Regenerar tudo
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-border text-foreground"
+            onClick={handleSave}
+            disabled={saving || saved}
+          >
+            {saved ? <Check className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+            {saved ? "Salvo" : saving ? "Salvando..." : "Salvar"}
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5 border-border text-foreground">
             <Download className="w-3.5 h-3.5" />
             Exportar
