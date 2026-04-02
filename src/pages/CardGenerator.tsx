@@ -232,6 +232,7 @@ export default function CardGenerator() {
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [slideImgs, setSlideImgs] = useState<Record<number, HTMLImageElement>>({});
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
+  const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
   const [rendered, setRendered] = useState(false);
 
   // Load slides and cached images from localStorage
