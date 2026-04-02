@@ -3,7 +3,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -98,6 +98,8 @@ export default function ContentEngine() {
   const [images, setImages] = useState<Record<number, string>>({});
   const [activeTab, setActiveTab] = useState("estrategia");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<"generate" | "paste">("generate");
   const [pasteJson, setPasteJson] = useState("");
   const [pasteGenerateImages, setPasteGenerateImages] = useState(true);
@@ -166,7 +168,7 @@ export default function ContentEngine() {
 
   const handleGenerate = async () => {
     if (!form.idea.trim()) { setError("Digite uma ideia."); return; }
-    setError(""); setLoading(true); setResult(null); setImages({});
+    setError(""); setLoading(true); setResult(null); setImages({}); setSaved(false);
     try {
       const body = {
         idea: form.idea, format: FORMAT_MAP[form.format] || form.format,
@@ -528,7 +530,30 @@ export default function ContentEngine() {
                   <LayoutGrid className="w-3.5 h-3.5" /> Criar Cards Visuais
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={() => { setResult(null); setImages({}); }}
+              <Button
+                variant="secondary"
+                size="sm"
+                className="text-xs h-8 gap-1.5"
+                disabled={saving || saved}
+                onClick={async () => {
+                  if (!user) { toast.error("Faça login para salvar"); return; }
+                  setSaving(true);
+                  const title = result.carousel?.title || result.reels?.title || "Sem título";
+                  const { error: saveErr } = await supabase.from("generations").insert([{
+                    title,
+                    format: form.format === "carrossel" ? "carousel" : form.format,
+                    niche: form.niche,
+                    content: JSON.parse(JSON.stringify(result)),
+                  }]);
+                  setSaving(false);
+                  if (saveErr) { toast.error("Erro ao salvar: " + saveErr.message); }
+                  else { setSaved(true); toast.success("Salvo na biblioteca!"); }
+                }}
+              >
+                {saved ? <Check className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                {saved ? "Salvo" : saving ? "Salvando..." : "Salvar"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setResult(null); setImages({}); setSaved(false); }}
                 className="text-xs text-muted-foreground h-8">
                 ← Nova geração
               </Button>
