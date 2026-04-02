@@ -1,25 +1,58 @@
 
 
-# Fix: Usar modelo imagen-3.0-generate-002 com GOOGLE_AI_API_KEY
+# Implementar Biblioteca — Salvar e Listar Conteúdos Gerados
 
-## Problema
-O modelo `gemini-2.0-flash-preview-image-generation` não existe na API v1beta, causando 404 em todos os prompts.
+## O que será feito
 
-## Solução
-Trocar para `imagen-3.0-generate-002` usando a `GOOGLE_AI_API_KEY` já configurada nas secrets.
+1. **Criar tabela `generations` no banco** com colunas: `id`, `user_id`, `title`, `format`, `niche`, `content` (JSONB com todo o GeneratedContent), `created_at`. RLS permitindo cada usuário ver/inserir/deletar apenas seus próprios registros.
 
-## Alterações em `supabase/functions/generate-images/index.ts`
+2. **Adicionar botão "Salvar na Biblioteca"** no `ResultsView.tsx` (ao lado de "Exportar"). Ao clicar, salva o conteúdo gerado na tabela `generations` vinculado ao usuário logado.
 
-1. **Endpoint**: Trocar para `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GOOGLE_AI_API_KEY}`
-2. **Payload**: Trocar formato para:
-```json
-{
-  "instances": [{ "prompt": "..." }],
-  "parameters": { "sampleCount": 1, "aspectRatio": "1:1" }
-}
+3. **Implementar a página Biblioteca** (`Library.tsx`): lista os conteúdos salvos em cards com título, formato, nicho e data. Ao clicar num card, abre o `ResultsView` com o conteúdo salvo. Opção de deletar.
+
+## Detalhes técnicos
+
+### Migration SQL
+```sql
+CREATE TABLE public.generations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL DEFAULT auth.uid(),
+  title text NOT NULL DEFAULT '',
+  format text NOT NULL DEFAULT 'carousel',
+  niche text NOT NULL DEFAULT '',
+  content jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.generations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own generations"
+  ON public.generations FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own generations"
+  ON public.generations FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can delete own generations"
+  ON public.generations FOR DELETE TO authenticated
+  USING (user_id = auth.uid());
 ```
-3. **Parse da resposta**: Extrair imagem de `predictions[0].bytesBase64Encoded` em vez de `candidates[0].content.parts`
-4. **Manter**: Upload ao bucket `generated-images`, retorno de URLs públicas, tratamento de erros 429, delay entre requests
 
-Nenhum outro arquivo precisa ser alterado.
+### ResultsView — botão Salvar
+- Importar `supabase` client e `useAuth`
+- Botão "Salvar" que faz `INSERT` na tabela `generations` com `title`, `format`, `niche` e `content` (o objeto `GeneratedContent` completo como JSON)
+- Toast de sucesso/erro
+
+### Library — página funcional
+- Query `SELECT * FROM generations WHERE user_id = auth.uid() ORDER BY created_at DESC`
+- Cards com título, formato (badge), nicho, data relativa
+- Click abre o conteúdo no `ResultsView` (modo leitura)
+- Botão de deletar com confirmação
+
+### Arquivos alterados
+- `supabase/migrations/` — nova migration
+- `src/components/ResultsView.tsx` — botão salvar
+- `src/pages/Library.tsx` — reescrever com funcionalidade real
+- `src/integrations/supabase/types.ts` — será atualizado automaticamente
 
