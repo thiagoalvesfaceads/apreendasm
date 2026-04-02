@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, ArrowLeft, Loader2, RefreshCw, Upload, X } from "lucide-react";
+import { Download, ArrowLeft, Loader2, RefreshCw, Upload, X, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SlideData {
@@ -96,6 +96,7 @@ async function renderCard(
   totalSlides: number,
   avatarImg: HTMLImageElement | null,
   slideImg: HTMLImageElement | null,
+  offsetY: number = 0,
 ) {
   const ctx = canvas.getContext("2d")!;
   canvas.width = CANVAS_W;
@@ -216,7 +217,8 @@ async function renderCard(
       sx = (slideImg.width - sw) / 2;
     } else {
       sh = slideImg.width / dstRatio;
-      sy = (slideImg.height - sh) / 2;
+      const centerSy = (slideImg.height - sh) / 2;
+      sy = Math.max(0, Math.min(slideImg.height - sh, centerSy + offsetY * centerSy));
     }
     ctx.drawImage(slideImg, sx, sy, sw, sh, imgX, imgY, imgW, imgH);
     ctx.restore();
@@ -230,6 +232,7 @@ export default function CardGenerator() {
   const [avatarImg, setAvatarImg] = useState<HTMLImageElement | null>(null);
   const [slideImgs, setSlideImgs] = useState<Record<number, HTMLImageElement>>({});
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
+  const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
   const [rendered, setRendered] = useState(false);
 
   // Load slides and cached images from localStorage
@@ -320,19 +323,19 @@ export default function CardGenerator() {
     return () => { cancelled = true; };
   }, [generatedImages]);
 
-  // Render canvases — re-render whenever slides, avatar or slide images change
+  // Render canvases — re-render whenever slides, avatar, slide images or offsets change
   useEffect(() => {
     if (slides.length === 0) return;
     let anyRendered = false;
     slides.forEach((slide) => {
       const canvas = canvasRefs.current[slide.slide_number];
       if (canvas) {
-        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null);
+        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null, imageOffsets[slide.slide_number] || 0);
         anyRendered = true;
       }
     });
     if (anyRendered) setRendered(true);
-  }, [slides, avatarImg, slideImgs]);
+  }, [slides, avatarImg, slideImgs, imageOffsets]);
 
   const handleImageUpload = useCallback((slideNumber: number, file: File) => {
     const reader = new FileReader();
@@ -457,14 +460,34 @@ export default function CardGenerator() {
                   <Upload className="w-3.5 h-3.5" /> Imagem
                 </Button>
                 {generatedImages[slide.slide_number] && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs px-2 text-destructive hover:text-destructive"
-                    onClick={() => removeImage(slide.slide_number)}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageOffsets((prev) => ({ ...prev, [slide.slide_number]: Math.max(-1, (prev[slide.slide_number] || 0) - 0.1) }))}
+                      title="Mover imagem para cima"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageOffsets((prev) => ({ ...prev, [slide.slide_number]: Math.min(1, (prev[slide.slide_number] || 0) + 0.1) }))}
+                      title="Mover imagem para baixo"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs px-2 text-destructive hover:text-destructive"
+                      onClick={() => removeImage(slide.slide_number)}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
