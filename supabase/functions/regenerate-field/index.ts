@@ -43,8 +43,9 @@ ${ANTI_CONTAMINATION}`,
     shorten: `Você é um editor de textos expert. Encurte o texto fornecido, tornando-o mais conciso e direto, sem perder a essência e o impacto emocional.
 Mantenha o tom e o objetivo emocional. Reduza em aproximadamente 30-50%.
 ${ANTI_CONTAMINATION}`,
-    lengthen: `Você é um copywriter de alto nível. Expanda o texto fornecido, aprofundando os argumentos, adicionando storytelling, frases de impacto e mais camadas emocionais.
-Mantenha o tom e o objetivo emocional. Aumente em aproximadamente 50-100%.
+    lengthen: `Você é um copywriter de alto nível. Expanda o texto fornecido, aprofundando os argumentos com mais camadas emocionais e storytelling.
+Mantenha o tom e o objetivo emocional. Enriqueça a densidade do texto SEM adicionar parágrafos extras — aprofunde os existentes.
+IMPORTANTE: O limite de parágrafos das regras de formatação é INVIOLÁVEL, mesmo ao expandir.
 ${ANTI_CONTAMINATION}`,
   },
   visual_prompt: {
