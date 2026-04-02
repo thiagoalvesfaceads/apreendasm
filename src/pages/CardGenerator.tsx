@@ -590,6 +590,24 @@ export default function CardGenerator() {
                       <ChevronDown className="w-3.5 h-3.5" />
                     </Button>
                     <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageScales((prev) => ({ ...prev, [slide.slide_number]: Math.max(0.5, ((prev[slide.slide_number] || 1.0) - 0.1)) }))}
+                      title="Diminuir imagem"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageScales((prev) => ({ ...prev, [slide.slide_number]: Math.min(1.5, ((prev[slide.slide_number] || 1.0) + 0.1)) }))}
+                      title="Aumentar imagem"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
                       variant="ghost"
                       size="sm"
                       className="text-xs px-2 text-destructive hover:text-destructive"
