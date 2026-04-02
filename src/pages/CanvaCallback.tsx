@@ -19,8 +19,14 @@ export default function CanvaCallback() {
 
     const exchangeToken = async () => {
       try {
+        const codeVerifier = sessionStorage.getItem("canva_code_verifier");
+        if (!codeVerifier) {
+          setError("Code verifier não encontrado. Tente conectar novamente.");
+          return;
+        }
+        sessionStorage.removeItem("canva_code_verifier");
         const { data, error: fnError } = await supabase.functions.invoke("canva-callback", {
-          body: { code },
+          body: { code, code_verifier: codeVerifier },
         });
 
         if (fnError || !data?.success) {

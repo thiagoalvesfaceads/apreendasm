@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code,
+        code_verifier,
         redirect_uri: "https://apreendasm.lovable.app/canva-callback",
       }),
     });
