@@ -1,31 +1,51 @@
 
 
-# Card sem imagem — redesenho automático com texto centralizado
+# Botões de regeneração por campo no Carrossel (ContentEngine)
 
 ## O que muda
 
-### 1. `src/pages/CardGenerator.tsx` — função `renderCard`
-Quando `slideImg` é `null`, em vez de simplesmente não desenhar nada no espaço restante, o card será redesenhado:
-- **Título com fonte maior** (~54px em vez de 46px)
-- **Body com fonte maior** (~38px em vez de 32px)
-- **Texto centralizado verticalmente** no canvas: calcular a altura total do bloco de texto (título + body), depois posicionar o cursorY para que o bloco fique centrado entre o header e o rodapé do card
+Na aba "Carrossel" da `ContentEngine` (linhas 620-661), adicionar botões de ação ao lado de cada campo editável dos slides:
 
-### 2. `src/pages/CardGenerator.tsx` — botão X no upload
-Atualmente o botão de remover imagem (X) só aparece na barra de botões embaixo do card. A mudança:
-- Adicionar um **botão X sobreposto no canto superior direito** do container do canvas, visível apenas quando o slide tem imagem
-- Ao clicar, chama `removeImage(slide.slide_number)` — o card é automaticamente re-renderizado sem imagem (já funciona pelo `useEffect` existente)
-- Manter o botão X existente na barra inferior também
+### 1. Título — botão "Regerar"
+- Botão pequeno ao lado do label "Título"
+- Chama a edge function `generate-content` com um prompt focado: regenerar apenas o título daquele slide, mantendo o contexto (role, body, estratégia)
+- Atualiza via `updateSlide(slideNumber, "title", novoTitulo)`
 
-### Lógica de centralização (dentro de `renderCard`)
-```text
-Se slideImg === null:
-  1. Usar fontes maiores (título 54px, body 38px)
-  2. Calcular altura total do texto (título + body)
-  3. Posicionar cursorY = (CANVAS_H - alturaTotal) / 2
-  4. Renderizar título e body centralizados
-```
+### 2. Corpo — botões "Regerar", "Encurtar", "Alongar"  
+- 3 botões pequenos ao lado do label "Corpo"
+- **Regerar**: gera um body completamente novo para o slide
+- **Encurtar**: pede versão mais concisa do body atual
+- **Alongar**: pede versão mais aprofundada/extensa do body atual
+- Todos chamam uma nova edge function (ou a existente com parâmetro de ação)
 
-### Resultado
-- Botão X aparece sobre a imagem do card para remover rapidamente
-- Card sem imagem é redesenhado com texto maior e centralizado, preenchendo bem o espaço
+### 3. Prompt Visual — botão "Regerar"
+- Botão ao lado do label "Prompt Visual"
+- Gera um novo visual_prompt mantendo o contexto do slide
+
+### Implementação
+
+#### Nova edge function: `supabase/functions/regenerate-field/index.ts`
+- Recebe: `{ field, action, slide, strategy, tone, niche, format }`
+  - `field`: "title" | "body" | "visual_prompt"
+  - `action`: "regenerate" | "shorten" | "lengthen" (só para body)
+  - `slide`: dados do slide atual (title, body, role, emotional_goal)
+  - `strategy`: estratégia completa para contexto
+  - `tone`, `niche`: contexto
+- Retorna: `{ value: "novo texto gerado" }`
+- Usa Google AI (mesma lógica do generate-content)
+
+#### `src/pages/ContentEngine.tsx`
+- Adicionar função `regenerateField(slideNumber, field, action)` que:
+  1. Mostra loading no botão
+  2. Chama `supabase.functions.invoke("regenerate-field", { body: ... })`
+  3. Atualiza o slide com `updateSlide(slideNumber, field, novoValor)`
+- Adicionar state `regeneratingField` para controle de loading
+- Adicionar os botões no JSX da aba carrossel, ao lado de cada label
+
+#### UI dos botões
+- Botões pequenos (`size="sm"`, `variant="ghost"`) com ícones:
+  - Regerar: `RefreshCw` (w-3 h-3)
+  - Encurtar: `Minus` 
+  - Alongar: `Plus`
+- Desabilitados durante loading com spinner
 
