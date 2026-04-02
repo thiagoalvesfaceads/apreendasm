@@ -99,7 +99,8 @@ ${action === "shorten" ? "Encurte o CORPO do slide acima." : ""}
 ${action === "lengthen" ? "Expanda e aprofunde o CORPO do slide acima." : ""}
 ${action === "regenerate" && field === "title" ? "Gere um novo TÍTULO para o slide acima." : ""}
 ${action === "regenerate" && field === "body" ? "Gere um novo CORPO para o slide acima." : ""}
-${action === "regenerate" && field === "visual_prompt" ? "Gere um novo PROMPT VISUAL para o slide acima." : ""}`;
+${action === "regenerate" && field === "visual_prompt" ? "Gere um novo PROMPT VISUAL para o slide acima." : ""}
+${slide.body?.trimEnd().endsWith(">") ? "REGRA OBRIGATÓRIA: O texto atual termina com uma frase-gancho curta seguida de '>'. Você DEVE manter esse padrão — o texto final DEVE terminar com uma frase-gancho curta + '>' (ex: 'te explico o seguinte >')." : ""}`;
 
     const key = Deno.env.get("GOOGLE_AI_API_KEY");
     if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada.");
