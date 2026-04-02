@@ -722,6 +722,20 @@ export default function ContentEngine() {
                   <div className="text-xs text-muted-foreground leading-relaxed">{scene}</div>
                 </div>
               ))}
+              <Button
+                className="w-full gap-2 mt-2"
+                onClick={() => {
+                  const allPrompts = (result.carousel?.slides || result.reels?.scene_suggestions || [])
+                    .map((s: any, i: number) => s.visual_prompt ? `Card ${s.slide_number || i + 1}: ${s.visual_prompt}` : s)
+                    .join("\n\n");
+                  copy(allPrompts);
+                  toast.success("Prompts copiados! Cole no Gemini (Ctrl+V)");
+                  window.open("https://gemini.google.com/gem/1Jh27NXowbrFiqCzDx6YvO_6UfQiTMuQt", "_blank");
+                }}
+              >
+                <Sparkles className="w-4 h-4" />
+                Gerar imagens no Gemini
+              </Button>
             </div>
           )}
 
