@@ -27,15 +27,37 @@ function getProfileImageUrl() {
   return data.publicUrl;
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, lineHeight: number): string[] {
+function stripBold(text: string): string {
+  return text.replace(/\*\*(.*?)\*\*/g, "$1");
+}
+
+function measureFormattedWidth(ctx: CanvasRenderingContext2D, text: string, normalFont: string, boldFont: string): number {
+  let width = 0;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  for (const part of parts) {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      ctx.font = boldFont;
+      width += ctx.measureText(part.slice(2, -2)).width;
+    } else {
+      ctx.font = normalFont;
+      width += ctx.measureText(part).width;
+    }
+  }
+  return width;
+}
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, lineHeight: number, normalFont: string, boldFont: string): string[] {
   const lines: string[] = [];
   const paragraphs = text.split("\n");
-  for (const para of paragraphs) {
+  for (let pi = 0; pi < paragraphs.length; pi++) {
+    if (pi > 0) lines.push("__PARAGRAPH_BREAK__");
+    const para = paragraphs[pi];
+    if (!para.trim()) continue;
     const words = para.split(" ");
     let current = "";
     for (const word of words) {
       const test = current ? `${current} ${word}` : word;
-      if (ctx.measureText(test).width > maxWidth && current) {
+      if (measureFormattedWidth(ctx, test, normalFont, boldFont) > maxWidth && current) {
         lines.push(current);
         current = word;
       } else {
@@ -45,6 +67,26 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
     if (current) lines.push(current);
   }
   return lines;
+}
+
+function drawFormattedLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, normalFont: string, boldFont: string, color: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  let curX = x;
+  for (const part of parts) {
+    if (!part) continue;
+    if (part.startsWith("**") && part.endsWith("**")) {
+      const inner = part.slice(2, -2);
+      ctx.font = boldFont;
+      ctx.fillStyle = color;
+      ctx.fillText(inner, curX, y);
+      curX += ctx.measureText(inner).width;
+    } else {
+      ctx.font = normalFont;
+      ctx.fillStyle = color;
+      ctx.fillText(part, curX, y);
+      curX += ctx.measureText(part).width;
+    }
+  }
 }
 
 function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -181,50 +223,60 @@ async function renderCard(
 
   const headerEndY = avatarY + AVATAR_SIZE + AVATAR_BORDER * 2 + 40;
 
+  const titleNormalFont = `bold ${titleFontSize}px sans-serif`;
+  const titleBoldFont = `bold ${titleFontSize}px sans-serif`;
+  const bodyNormalFont = `${bodyFontSize}px sans-serif`;
+  const bodyBoldFont = `bold ${bodyFontSize}px sans-serif`;
+  const paraBreakH = Math.round(bodyLineHeight * 0.5);
+
   if (isTextOnly) {
     // --- Text-only mode: vertically centered ---
     const maxTextW = CANVAS_W - PADDING * 2;
-    ctx.font = `bold ${titleFontSize}px sans-serif`;
-    const titleLines = wrapText(ctx, slide.title, maxTextW, titleLineHeight);
-    ctx.font = `${bodyFontSize}px sans-serif`;
-    const bodyLines = wrapText(ctx, slide.body, maxTextW, bodyLineHeight);
+    ctx.font = titleNormalFont;
+    const titleLines = wrapText(ctx, slide.title, maxTextW, titleLineHeight, titleNormalFont, titleBoldFont);
+    ctx.font = bodyNormalFont;
+    const bodyLines = wrapText(ctx, slide.body, maxTextW, bodyLineHeight, bodyNormalFont, bodyBoldFont);
 
-    const totalTextH = titleLines.length * titleLineHeight + 30 + bodyLines.length * bodyLineHeight;
+    let totalTextH = 30;
+    for (const line of titleLines) {
+      totalTextH += line === "__PARAGRAPH_BREAK__" ? paraBreakH : titleLineHeight;
+    }
+    for (const line of bodyLines) {
+      totalTextH += line === "__PARAGRAPH_BREAK__" ? paraBreakH : bodyLineHeight;
+    }
     const availableH = CANVAS_H - headerEndY - PADDING;
     cursorY = headerEndY + Math.max(0, (availableH - totalTextH) / 2);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${titleFontSize}px sans-serif`;
     for (const line of titleLines) {
-      ctx.fillText(line, PADDING, cursorY + titleFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + titleFontSize, titleNormalFont, titleBoldFont, "#ffffff");
       cursorY += titleLineHeight;
     }
     cursorY += 30;
 
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = `${bodyFontSize}px sans-serif`;
     for (const line of bodyLines) {
-      ctx.fillText(line, PADDING, cursorY + bodyFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + bodyFontSize, bodyNormalFont, bodyBoldFont, "#e2e8f0");
       cursorY += bodyLineHeight;
     }
   } else {
     // --- Normal mode with image ---
     cursorY = headerEndY;
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${titleFontSize}px sans-serif`;
-    const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, titleLineHeight);
+    ctx.font = titleNormalFont;
+    const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, titleLineHeight, titleNormalFont, titleBoldFont);
     for (const line of titleLines) {
-      ctx.fillText(line, PADDING, cursorY + titleFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + titleFontSize, titleNormalFont, titleBoldFont, "#ffffff");
       cursorY += titleLineHeight;
     }
     cursorY += 20;
 
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = `${bodyFontSize}px sans-serif`;
-    const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, bodyLineHeight);
+    ctx.font = bodyNormalFont;
+    const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, bodyLineHeight, bodyNormalFont, bodyBoldFont);
     for (const line of bodyLines) {
-      ctx.fillText(line, PADDING, cursorY + bodyFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + bodyFontSize, bodyNormalFont, bodyBoldFont, "#e2e8f0");
       cursorY += bodyLineHeight;
     }
     cursorY += 30;
