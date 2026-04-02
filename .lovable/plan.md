@@ -1,22 +1,31 @@
 
 
-# Aprimorar tom "Card" — gancho com seta + último card sem imagem
+# Card sem imagem — redesenho automático com texto centralizado
 
-## Alteração
+## O que muda
 
-### `supabase/functions/generate-content/index.ts`
-Expandir a `cardToneInstruction` (linha 254-256) para incluir duas regras extras:
+### 1. `src/pages/CardGenerator.tsx` — função `renderCard`
+Quando `slideImg` é `null`, em vez de simplesmente não desenhar nada no espaço restante, o card será redesenhado:
+- **Título com fonte maior** (~54px em vez de 46px)
+- **Body com fonte maior** (~38px em vez de 32px)
+- **Texto centralizado verticalmente** no canvas: calcular a altura total do bloco de texto (título + body), depois posicionar o cursorY para que o bloco fique centrado entre o header e o rodapé do card
 
-1. **Gancho de transição com seta**: Cada card (exceto o último) deve terminar com uma frase-gancho curta seguida de ">" que instiga a leitura do próximo card. Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "olha o que acontece >"
+### 2. `src/pages/CardGenerator.tsx` — botão X no upload
+Atualmente o botão de remover imagem (X) só aparece na barra de botões embaixo do card. A mudança:
+- Adicionar um **botão X sobreposto no canto superior direito** do container do canvas, visível apenas quando o slide tem imagem
+- Ao clicar, chama `removeImage(slide.slide_number)` — o card é automaticamente re-renderizado sem imagem (já funciona pelo `useEffect` existente)
+- Manter o botão X existente na barra inferior também
 
-2. **Último card sem imagem**: O último card (CTA) deve ser puramente textual, centralizado, com texto persuasivo de oferta/chamada. O `visual_prompt` do último slide deve ser vazio ou `"none"`. Sem imagem — apenas copy de alta conversão.
-
-### `src/pages/ContentEngine.tsx` (CardGenerator render)
-No componente que renderiza os cards, verificar se o último slide com tom "card" tem `visual_prompt === "none"` ou vazio, e nesse caso não renderizar imagem, centralizando o texto.
-
-Isso pode impactar também `src/components/results/CarouselTab.tsx` — onde o slide é renderizado com `slide.image_url`. Se `visual_prompt` for vazio, o bloco de imagem já não aparece (pois não há URL). Não precisa de mudança no frontend se a lógica de geração de imagem já ignora prompts vazios.
+### Lógica de centralização (dentro de `renderCard`)
+```text
+Se slideImg === null:
+  1. Usar fontes maiores (título 54px, body 38px)
+  2. Calcular altura total do texto (título + body)
+  3. Posicionar cursorY = (CANVAS_H - alturaTotal) / 2
+  4. Renderizar título e body centralizados
+```
 
 ### Resultado
-- Cards intermediários terminam com frase-gancho + ">" 
-- Último card é só texto persuasivo, sem imagem
+- Botão X aparece sobre a imagem do card para remover rapidamente
+- Card sem imagem é redesenhado com texto maior e centralizado, preenchendo bem o espaço
 
