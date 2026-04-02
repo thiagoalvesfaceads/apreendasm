@@ -1,36 +1,18 @@
 
 
-# Redesign do Content Engine — Layout Full-Screen
+# Fix: Botão Canva abrindo numa nova aba
 
-## Problema atual
+## Problema
+O `window.location.href` tenta navegar para `canva.com` dentro do iframe do preview, que bloqueia a navegação. O mesmo problema pode ocorrer na versão publicada dependendo do contexto.
 
-O Content Engine usa um layout sidebar estreita (w-72) com o formulário espremido e uma área principal quase vazia quando não há resultado. O usuário quer o layout da imagem de referência (image-5.png): formulário centralizado em tela cheia, sem sidebar.
+## Solução
+Trocar `window.location.href = data.url` por `window.open(data.url, '_blank')` no `handleConnectCanva`. Isso abre o fluxo OAuth do Canva numa nova aba do navegador.
 
-## O que será feito
+Após o utilizador autorizar no Canva, será redirecionado para `https://apreendasm.lovable.app/canva-callback`, que troca o código por tokens e salva na base de dados. Depois basta voltar à aba do Content Engine e atualizar — o estado `canvaConnected` será recalculado automaticamente via a query a `canva_tokens`.
 
-Reescrever o layout do `ContentEngine.tsx` para usar **tela inteira centralizada**:
+## Alteração
+- **`src/pages/ContentEngine.tsx`** linha 81: trocar `window.location.href = data.url` por `window.open(data.url, '_blank')`
 
-### Layout sem resultado (formulário)
-- **Header/Nav** no topo: links (Usuários, Content Engine, Biblioteca, Sair) + botão Canva — em linha, alinhados à direita
-- **Tabs Gerar / Colar Conteúdo** centralizadas abaixo do header
-- **Título** "Content Engine MASTER" centralizado com badge dourado
-- **Formulário** centralizado (max-w-2xl), campos em grid responsivo:
-  - Ideia Bruta: textarea largo
-  - Formato: botões toggle (Reels / Carrossel) — não select
-  - Objetivo + Consciência: lado a lado em 2 colunas
-  - Tom Principal: select
-  - Nicho + Oferta: lado a lado
-  - Número de Cards: botões numéricos (5-10) — não select
-  - Seção de IA: card com Modelo de IA, toggle Gerar Imagens, Estilo Visual
-- **Botão Gerar** largo no final
-
-### Layout com resultado
-- Tabs de resultado (Estratégia, Carrossel, etc.) no topo
-- Conteúdo centralizado como já está
-
-### Botão Canva
-- Aparece no header/nav junto com os outros links, visível tanto no Content Engine quanto acessível
-
-## Arquivos alterados
-- `src/pages/ContentEngine.tsx` — reescrita do layout (mesma lógica, novo template)
+## Nota
+Para o fluxo funcionar completamente, o `CANVA_CLIENT_ID` e `CANVA_CLIENT_SECRET` precisam estar configurados como secrets, e o redirect URI `https://apreendasm.lovable.app/canva-callback` precisa estar registado na app do Canva.
 
