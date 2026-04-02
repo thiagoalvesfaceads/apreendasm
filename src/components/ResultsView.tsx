@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, RefreshCw, Download, Repeat2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Download, Bookmark, Check } from "lucide-react";
 import { GeneratedContent } from "@/types/content";
 import { StrategyTab } from "@/components/results/StrategyTab";
 import { ReelsTab } from "@/components/results/ReelsTab";
@@ -9,6 +9,9 @@ import { CaptionTab } from "@/components/results/CaptionTab";
 import { VisualPromptsTab } from "@/components/results/VisualPromptsTab";
 import { ImagesTab } from "@/components/results/ImagesTab";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface ResultsViewProps {
   content: GeneratedContent;
