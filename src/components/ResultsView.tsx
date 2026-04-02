@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, RefreshCw, Download, Repeat2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Download, Bookmark, Check } from "lucide-react";
 import { GeneratedContent } from "@/types/content";
 import { StrategyTab } from "@/components/results/StrategyTab";
 import { ReelsTab } from "@/components/results/ReelsTab";
@@ -9,6 +9,9 @@ import { CaptionTab } from "@/components/results/CaptionTab";
 import { VisualPromptsTab } from "@/components/results/VisualPromptsTab";
 import { ImagesTab } from "@/components/results/ImagesTab";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface ResultsViewProps {
   content: GeneratedContent;
@@ -48,6 +51,31 @@ export function ResultsView({
 }: ResultsViewProps) {
   const tabs = TAB_CONFIG[content.input.format];
   const [activeTab, setActiveTab] = useState(tabs[0].key);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const { user } = useAuth();
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error("Faça login para salvar na biblioteca");
+      return;
+    }
+    setSaving(true);
+    const title = content.reels?.title || content.carousel?.title || "Sem título";
+    const { error } = await supabase.from("generations").insert([{
+      title,
+      format: content.input.format,
+      niche: content.input.niche,
+      content: JSON.parse(JSON.stringify(content)),
+    }]);
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao salvar: " + error.message);
+    } else {
+      setSaved(true);
+      toast.success("Salvo na biblioteca!");
+    }
+  };
 
   const caption = content.reels?.caption || content.carousel?.caption || "";
   const cta = content.reels?.cta || content.carousel?.cta || "";
@@ -80,6 +108,16 @@ export function ResultsView({
           <Button variant="outline" size="sm" onClick={onRegenerate} className="gap-1.5 border-border text-foreground">
             <RefreshCw className="w-3.5 h-3.5" />
             Regenerar tudo
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-border text-foreground"
+            onClick={handleSave}
+            disabled={saving || saved}
+          >
+            {saved ? <Check className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+            {saved ? "Salvo" : saving ? "Salvando..." : "Salvar"}
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 border-border text-foreground">
             <Download className="w-3.5 h-3.5" />
