@@ -1,29 +1,22 @@
 
 
-# Adicionar tom "Card" ao Content Engine
+# Aprimorar tom "Card" — gancho com seta + último card sem imagem
 
-## O que é
-Novo tom principal chamado **"Card"** que gera copy mais profunda e extensa por slide — no estilo do Alfredo Soares nas imagens: parágrafos narrativos densos, storytelling progressivo, cada card com várias frases/parágrafos (não só uma frase curta).
+## Alteração
 
-## Alterações
+### `supabase/functions/generate-content/index.ts`
+Expandir a `cardToneInstruction` (linha 254-256) para incluir duas regras extras:
 
-### 1. `src/types/content.ts`
-- Adicionar `"card"` ao tipo `ContentTone`
-- Adicionar `card: "Card"` ao `TONE_LABELS`
+1. **Gancho de transição com seta**: Cada card (exceto o último) deve terminar com uma frase-gancho curta seguida de ">" que instiga a leitura do próximo card. Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "olha o que acontece >"
 
-### 2. `src/pages/ContentEngine.tsx`
-- Adicionar `["card", "Card"]` ao `TONE_OPTIONS` (linha 28)
-- Adicionar `card: "card"` ao `TONE_MAP` (linha 20)
+2. **Último card sem imagem**: O último card (CTA) deve ser puramente textual, centralizado, com texto persuasivo de oferta/chamada. O `visual_prompt` do último slide deve ser vazio ou `"none"`. Sem imagem — apenas copy de alta conversão.
 
-### 3. `src/components/GenerationForm.tsx`
-- Já usa o tipo `ContentTone` dinamicamente, deve funcionar sem mudança
+### `src/pages/ContentEngine.tsx` (CardGenerator render)
+No componente que renderiza os cards, verificar se o último slide com tom "card" tem `visual_prompt === "none"` ou vazio, e nesse caso não renderizar imagem, centralizando o texto.
 
-### 4. `supabase/functions/generate-content/index.ts`
-- No `CAROUSEL_SYSTEM`, adicionar instrução condicional para tom "card": quando o tom for "card", o `body` de cada slide deve ser longo (3-6 parágrafos), narrativo, com storytelling, como post de LinkedIn/Instagram de autoridade. Cada card é um micro-texto completo.
-- No prompt do carrossel (linha ~240), passar o tom e adicionar instrução extra quando `tone === "card"`:
-  - "Cada slide deve ter um body extenso com 3 a 6 parágrafos narrativos. Use storytelling, frases de impacto, progressão emocional. O estilo é de posts de autoridade no Instagram — como se cada card fosse um micro-post completo. Não use frases genéricas. Cada parágrafo deve ter peso próprio."
+Isso pode impactar também `src/components/results/CarouselTab.tsx` — onde o slide é renderizado com `slide.image_url`. Se `visual_prompt` for vazio, o bloco de imagem já não aparece (pois não há URL). Não precisa de mudança no frontend se a lógica de geração de imagem já ignora prompts vazios.
 
 ### Resultado
-- Novo tom "Card" aparece no select de tom principal
-- Quando selecionado, a IA gera body muito mais denso e narrativo por slide, no estilo das imagens do Alfredo Soares
+- Cards intermediários terminam com frase-gancho + ">" 
+- Último card é só texto persuasivo, sem imagem
 
