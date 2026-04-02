@@ -1,73 +1,38 @@
 
-Corrigir o fluxo de Encurtar/Alongar para usar o mesmo provider de IA escolhido na geração original, em vez de sempre depender do Gemini.
+
+# Fix: OpenAI não preserva formatação (negrito, parágrafos) na geração inicial
 
 ## Diagnóstico
-O erro não foi causado pelas regras de formatação em si.
 
-Hoje o app está assim:
-- `generate-content` respeita `ai_provider` (`google`, `openai`, `anthropic`)
-- mas `regenerate-field` ignora isso e sempre usa `GOOGLE_AI_API_KEY`
-- então, quando você gera com OpenAI e depois clica em `Encurtar`, o app muda de provider sem querer e cai no rate limit do Gemini
+O problema está no `CAROUSEL_SYSTEM` prompt em `generate-content`. O Gemini naturalmente retorna texto com `**negrito**` e parágrafos separados por `\n\n`, mas o OpenAI não faz isso por padrão — ele retorna um bloco corrido.
 
-Os logs confirmam isso:
-```text
-regenerate-field error: Error: RATE_LIMITED
+A instrução de tom "card" (`cardToneInstruction`) pede "3 a 6 parágrafos narrativos densos" e "frase-gancho com `>`", mas **não instrui explicitamente** o modelo a:
+- Usar `**negrito**` nas frases de impacto
+- Separar parágrafos com `\n\n` no JSON
+
+## Solução
+
+### `supabase/functions/generate-content/index.ts`
+
+Adicionar regras de formatação explícitas no `cardToneInstruction` (dentro do prompt do carrossel, quando `tone === "card"`):
+
+1. Instruir que o body de cada slide DEVE usar `**negrito**` em frases-chave e palavras de impacto
+2. Instruir que os parágrafos DEVEM ser separados por `\n\n` (duas quebras de linha) dentro do campo body do JSON
+3. Reforçar que o gancho final com `>` deve estar em um parágrafo separado
+
+Trecho a adicionar no `cardToneInstruction`:
+
+```
+FORMATAÇÃO OBRIGATÓRIA DO BODY:
+- Separe cada parágrafo com duas quebras de linha (\n\n) dentro do campo "body" do JSON
+- Use **negrito** (markdown) nas frases de maior impacto emocional, insights-chave e palavras de autoridade
+- NUNCA retorne o body como um bloco único de texto corrido
+- O gancho de transição final (com ">") deve estar em seu próprio parágrafo separado
 ```
 
-## Implementação
+Isso garante que **todos os providers** (Google, OpenAI, Anthropic) gerem o body com a mesma diagramação visual.
 
-### 1. `src/pages/ContentEngine.tsx`
-Ao chamar `regenerate-field`, enviar também o provider atual:
-- incluir `ai_provider: form.aiProvider` no body da chamada
-- se quiser deixar mais robusto, persistir o provider junto do resultado carregado/salvo para não depender só do estado visual do form
+### Resultado esperado
+- Cards gerados pelo OpenAI terão parágrafos separados, negrito e gancho — idênticos ao Gemini
+- Nenhuma mudança no Gemini ou Anthropic (que já podem funcionar, mas agora terão instrução explícita)
 
-### 2. `supabase/functions/regenerate-field/index.ts`
-Refatorar a função para ter o mesmo roteador de provider usado em `generate-content`:
-- adicionar suporte a:
-  - Google
-  - OpenAI
-  - Anthropic
-- ler `ai_provider` do request
-- usar o provider informado para `title`, `body`, `shorten`, `lengthen` e `visual_prompt`
-
-Estrutura:
-```text
-callAI(provider, systemPrompt, userPrompt)
-  -> callGoogleAI(...)
-  -> callOpenAI(...)
-  -> callAnthropic(...)
-```
-
-### 3. Preservar o que já foi corrigido
-Manter intactas as regras já adicionadas para:
-- parágrafos com linha em branco
-- `**negrito**`
-- gancho final com `>`
-
-Ou seja: trocar apenas o motor de IA da regeneração, não remover a lógica de formatação.
-
-### 4. Tratamento de erro
-Padronizar os retornos de `regenerate-field`:
-- `429` -> `RATE_LIMITED`
-- mensagens claras por provider
-- no front, continuar exibindo toast amigável
-
-## Resultado esperado
-- Se o conteúdo foi gerado com OpenAI, `Encurtar` e `Alongar` também usam OpenAI
-- Se foi gerado com Anthropic, a regeneração usa Anthropic
-- Gemini só será usado quando realmente tiver sido o provider escolhido
-- o fluxo deixa de quebrar por rate limit indevido do Gemini ao editar textos gerados por outro modelo
-
-## Detalhe técnico
-Hoje existe uma inconsistência entre as duas funções:
-```text
-generate-content:
-  aceita ai_provider e roteia corretamente
-
-regenerate-field:
-  ignora ai_provider
-  lê GOOGLE_AI_API_KEY direto
-  sempre chama Gemini
-```
-
-A correção é alinhar `regenerate-field` com a arquitetura já existente de `generate-content`.
