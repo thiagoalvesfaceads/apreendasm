@@ -333,6 +333,7 @@ export default function CardGenerator() {
   const [slideImgs, setSlideImgs] = useState<Record<number, HTMLImageElement>>({});
   const canvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
   const [imageOffsets, setImageOffsets] = useState<Record<number, number>>({});
+  const [imageScales, setImageScales] = useState<Record<number, number>>({});
   const [rendered, setRendered] = useState(false);
 
   // Load slides and cached images from localStorage
