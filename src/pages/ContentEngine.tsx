@@ -17,7 +17,7 @@ import {
 const FORMAT_MAP: Record<string, string> = { carrossel: "carousel", reels: "reels" };
 const GOAL_MAP: Record<string, string> = { descoberta: "discovery", conexão: "connection", relacionamento: "relationship", conversão: "conversion" };
 const AWARENESS_MAP: Record<string, string> = { frio: "cold", morno: "warm", quente: "hot" };
-const TONE_MAP: Record<string, string> = { reflexivo: "reflective", confrontador: "confrontational", didático: "didactic", emocional: "emotional", "autoridade tranquila": "calm_authority" };
+const TONE_MAP: Record<string, string> = { reflexivo: "reflective", confrontador: "confrontational", didático: "didactic", emocional: "emotional", "autoridade tranquila": "calm_authority", card: "card" };
 const VISUAL_MAP: Record<string, string> = { "clean realista": "clean_realistic", "editorial premium": "editorial_premium", "humano e cotidiano": "human_everyday", "dramático cinematográfico": "dramatic_cinematic", "minimalista sofisticado": "minimal_sophisticated" };
 
 const GOAL_OPTIONS = [
