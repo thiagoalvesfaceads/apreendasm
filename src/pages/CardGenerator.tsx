@@ -439,6 +439,33 @@ export default function CardGenerator() {
                 >
                   <Download className="w-3.5 h-3.5" /> Baixar PNG
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*";
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) handleImageUpload(slide.slide_number, file);
+                    };
+                    input.click();
+                  }}
+                >
+                  <Upload className="w-3.5 h-3.5" /> Imagem
+                </Button>
+                {generatedImages[slide.slide_number] && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs px-2 text-destructive hover:text-destructive"
+                    onClick={() => removeImage(slide.slide_number)}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}
