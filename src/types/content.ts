@@ -1,7 +1,7 @@
 export type ContentFormat = "reels" | "carousel";
 export type ContentGoal = "discovery" | "connection" | "relationship" | "conversion";
 export type AudienceAwareness = "cold" | "warm" | "hot";
-export type ContentTone = "reflective" | "confrontational" | "didactic" | "emotional" | "calm_authority";
+export type ContentTone = "reflective" | "confrontational" | "didactic" | "emotional" | "calm_authority" | "card";
 export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_everyday" | "dramatic_cinematic" | "minimal_sophisticated";
 export type LeadType = "offer" | "promise" | "problem_solution" | "big_secret" | "revelation" | "story";
 export type SlideRole = "hook" | "tension" | "insight" | "solution" | "cta" | "development" | "deepening";
