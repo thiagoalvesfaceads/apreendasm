@@ -223,50 +223,60 @@ async function renderCard(
 
   const headerEndY = avatarY + AVATAR_SIZE + AVATAR_BORDER * 2 + 40;
 
+  const titleNormalFont = `bold ${titleFontSize}px sans-serif`;
+  const titleBoldFont = `bold ${titleFontSize}px sans-serif`;
+  const bodyNormalFont = `${bodyFontSize}px sans-serif`;
+  const bodyBoldFont = `bold ${bodyFontSize}px sans-serif`;
+  const paraBreakH = Math.round(bodyLineHeight * 0.5);
+
   if (isTextOnly) {
     // --- Text-only mode: vertically centered ---
     const maxTextW = CANVAS_W - PADDING * 2;
-    ctx.font = `bold ${titleFontSize}px sans-serif`;
-    const titleLines = wrapText(ctx, slide.title, maxTextW, titleLineHeight);
-    ctx.font = `${bodyFontSize}px sans-serif`;
-    const bodyLines = wrapText(ctx, slide.body, maxTextW, bodyLineHeight);
+    ctx.font = titleNormalFont;
+    const titleLines = wrapText(ctx, slide.title, maxTextW, titleLineHeight, titleNormalFont, titleBoldFont);
+    ctx.font = bodyNormalFont;
+    const bodyLines = wrapText(ctx, slide.body, maxTextW, bodyLineHeight, bodyNormalFont, bodyBoldFont);
 
-    const totalTextH = titleLines.length * titleLineHeight + 30 + bodyLines.length * bodyLineHeight;
+    let totalTextH = 30;
+    for (const line of titleLines) {
+      totalTextH += line === "__PARAGRAPH_BREAK__" ? paraBreakH : titleLineHeight;
+    }
+    for (const line of bodyLines) {
+      totalTextH += line === "__PARAGRAPH_BREAK__" ? paraBreakH : bodyLineHeight;
+    }
     const availableH = CANVAS_H - headerEndY - PADDING;
     cursorY = headerEndY + Math.max(0, (availableH - totalTextH) / 2);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${titleFontSize}px sans-serif`;
     for (const line of titleLines) {
-      ctx.fillText(line, PADDING, cursorY + titleFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + titleFontSize, titleNormalFont, titleBoldFont, "#ffffff");
       cursorY += titleLineHeight;
     }
     cursorY += 30;
 
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = `${bodyFontSize}px sans-serif`;
     for (const line of bodyLines) {
-      ctx.fillText(line, PADDING, cursorY + bodyFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + bodyFontSize, bodyNormalFont, bodyBoldFont, "#e2e8f0");
       cursorY += bodyLineHeight;
     }
   } else {
     // --- Normal mode with image ---
     cursorY = headerEndY;
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${titleFontSize}px sans-serif`;
-    const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, titleLineHeight);
+    ctx.font = titleNormalFont;
+    const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, titleLineHeight, titleNormalFont, titleBoldFont);
     for (const line of titleLines) {
-      ctx.fillText(line, PADDING, cursorY + titleFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + titleFontSize, titleNormalFont, titleBoldFont, "#ffffff");
       cursorY += titleLineHeight;
     }
     cursorY += 20;
 
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = `${bodyFontSize}px sans-serif`;
-    const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, bodyLineHeight);
+    ctx.font = bodyNormalFont;
+    const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, bodyLineHeight, bodyNormalFont, bodyBoldFont);
     for (const line of bodyLines) {
-      ctx.fillText(line, PADDING, cursorY + bodyFontSize);
+      if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
+      drawFormattedLine(ctx, line, PADDING, cursorY + bodyFontSize, bodyNormalFont, bodyBoldFont, "#e2e8f0");
       cursorY += bodyLineHeight;
     }
     cursorY += 30;
