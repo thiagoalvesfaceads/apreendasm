@@ -290,9 +290,45 @@ CONTEXTO ORIGINAL:
 - Estilo Visual: ${visual_style}
 ${offer ? `- Oferta: ${offer}` : ""}
 
-Crie exatamente ${cards} slides seguindo a estrutura definida. Cada slide deve ter um visual_prompt rico e coerente com o estilo visual "${visual_style}".${cardToneInstruction}`;
+Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_prompt — deixe como string vazia.${cardToneInstruction}`;
 
       content = await callAI(ai_provider, CAROUSEL_SYSTEM, carouselPrompt);
+
+      // --- Second step: generate visual prompts based on final copy ---
+      const slidesContext = content.slides
+        .map((s: any) => `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`)
+        .join("\n");
+
+      const visualPromptRequest = `Crie prompts visuais para cada slide deste carrossel, baseados no conteúdo textual FINAL abaixo.
+
+ESTRATÉGIA:
+- Dor/Desejo/Tensão: ${strategy.pain_desire_tension}
+- Big Idea: ${strategy.big_idea}
+- Ângulo: ${strategy.angle}
+
+CONTEXTO:
+- Nicho: ${niche}
+- Tom: ${tone}
+- Estilo Visual desejado: ${visual_style}
+
+SLIDES (conteúdo final):
+${slidesContext}
+
+Para o ÚLTIMO slide (CTA), retorne visual_prompt como "none".
+Mantenha coerência visual entre todos os slides — mesma paleta, sujeito, ambiente.
+Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
+
+      try {
+        const visualData = await callAI(ai_provider, VISUAL_PROMPT_SYSTEM, visualPromptRequest);
+        if (visualData?.visual_prompts && Array.isArray(visualData.visual_prompts)) {
+          content.slides = content.slides.map((slide: any) => {
+            const vp = visualData.visual_prompts.find((v: any) => v.slide_number === slide.slide_number);
+            return vp ? { ...slide, visual_prompt: vp.visual_prompt } : slide;
+          });
+        }
+      } catch (vpError) {
+        console.error("Visual prompt generation failed, keeping original prompts:", vpError);
+      }
     }
 
     const result: Record<string, unknown> = { strategy };
