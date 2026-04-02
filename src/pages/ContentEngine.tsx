@@ -734,20 +734,16 @@ export default function ContentEngine() {
                   <div className="text-sm text-muted-foreground">Gerando imagens...</div>
                 </div>
               )}
-              {!loadingImages && Object.keys(images).length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p className="mb-4">Nenhuma imagem gerada ainda.</p>
-                  {result.carousel?.slides && (
-                    <Button variant="secondary" onClick={() => handleGenerateImages(result.carousel.slides)} className="gap-2">
-                      <RefreshCw className="w-4 h-4" /> Gerar Imagens Agora
-                    </Button>
-                  )}
-                </div>
-              )}
+              <div className="flex justify-end mb-4">
+                {result.carousel?.slides && (
+                  <Button variant="secondary" size="sm" onClick={() => handleGenerateImages(result.carousel.slides)} className="gap-1.5 text-xs">
+                    <RefreshCw className="w-3.5 h-3.5" /> Gerar Todas
+                  </Button>
+                )}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {result.carousel?.slides?.map((slide: any) => {
                   const img = images[slide.slide_number];
-                  if (!img && !loadingImages) return null;
                   return (
                     <div key={slide.slide_number} className="bg-card border border-border rounded-xl overflow-hidden">
                       <div className="aspect-square bg-background flex items-center justify-center">
@@ -765,7 +761,7 @@ export default function ContentEngine() {
                         <div className="text-xs font-semibold text-primary mb-1">Card {slide.slide_number}</div>
                         <div className="text-xs text-muted-foreground mb-2 line-clamp-2">{slide.title}</div>
                         <Button variant="secondary" size="sm" className="w-full gap-1 h-7 text-xs" onClick={() => handleRegenerateSlide(slide)}>
-                          <RefreshCw className="w-3 h-3" /> Regenerar
+                          <RefreshCw className="w-3 h-3" /> {img && img !== "loading" && img !== "error" ? "Regenerar" : "Gerar"}
                         </Button>
                       </div>
                     </div>
