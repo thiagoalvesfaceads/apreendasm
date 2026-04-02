@@ -339,11 +339,6 @@ export default function CardGenerator() {
     });
     if (anyRendered) setRendered(true);
   }, [slides, avatarImg, slideImgs]);
-        }
-      });
-      if (anyRendered) setRendered(true);
-    }
-  }, [slides, avatarImg, slideImgs, loadingImages, generatedImages]);
 
   const downloadCard = (slideNumber: number) => {
     const canvas = canvasRefs.current[slideNumber];
