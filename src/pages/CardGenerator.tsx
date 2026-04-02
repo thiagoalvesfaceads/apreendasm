@@ -27,6 +27,15 @@ function getProfileImageUrl() {
   return data.publicUrl;
 }
 
+function normalizeMarkdownBold(text: string): string {
+  // First, convert single *text* (not **) to **text**
+  // Negative lookbehind/lookahead to avoid matching already-double asterisks
+  let result = text.replace(/(?<!\*)\*(?!\*)((?:(?!\*).)+?)\*(?!\*)/g, "**$1**");
+  // Remove unnecessary quotes inside bold markers: **"text"** → **text**
+  result = result.replace(/\*\*[""](.+?)[""]\*\*/g, "**$1**");
+  return result;
+}
+
 function stripBold(text: string): string {
   return text.replace(/\*\*(.*?)\*\*/g, "$1");
 }
@@ -232,10 +241,12 @@ async function renderCard(
   if (isTextOnly) {
     // --- Text-only mode: vertically centered ---
     const maxTextW = CANVAS_W - PADDING * 2;
+    const normalizedTitle = normalizeMarkdownBold(slide.title);
+    const normalizedBody = normalizeMarkdownBold(slide.body);
     ctx.font = titleNormalFont;
-    const titleLines = wrapText(ctx, slide.title, maxTextW, titleLineHeight, titleNormalFont, titleBoldFont);
+    const titleLines = wrapText(ctx, normalizedTitle, maxTextW, titleLineHeight, titleNormalFont, titleBoldFont);
     ctx.font = bodyNormalFont;
-    const bodyLines = wrapText(ctx, slide.body, maxTextW, bodyLineHeight, bodyNormalFont, bodyBoldFont);
+    const bodyLines = wrapText(ctx, normalizedBody, maxTextW, bodyLineHeight, bodyNormalFont, bodyBoldFont);
 
     let totalTextH = 30;
     for (const line of titleLines) {
@@ -263,8 +274,11 @@ async function renderCard(
     // --- Normal mode with image ---
     cursorY = headerEndY;
 
+    const normalizedTitle = normalizeMarkdownBold(slide.title);
+    const normalizedBody = normalizeMarkdownBold(slide.body);
+
     ctx.font = titleNormalFont;
-    const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, titleLineHeight, titleNormalFont, titleBoldFont);
+    const titleLines = wrapText(ctx, normalizedTitle, CANVAS_W - PADDING * 2, titleLineHeight, titleNormalFont, titleBoldFont);
     for (const line of titleLines) {
       if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
       drawFormattedLine(ctx, line, PADDING, cursorY + titleFontSize, titleNormalFont, titleBoldFont, "#ffffff");
@@ -273,7 +287,7 @@ async function renderCard(
     cursorY += 20;
 
     ctx.font = bodyNormalFont;
-    const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, bodyLineHeight, bodyNormalFont, bodyBoldFont);
+    const bodyLines = wrapText(ctx, normalizedBody, CANVAS_W - PADDING * 2, bodyLineHeight, bodyNormalFont, bodyBoldFont);
     for (const line of bodyLines) {
       if (line === "__PARAGRAPH_BREAK__") { cursorY += paraBreakH; continue; }
       drawFormattedLine(ctx, line, PADDING, cursorY + bodyFontSize, bodyNormalFont, bodyBoldFont, "#e2e8f0");
