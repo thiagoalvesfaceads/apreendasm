@@ -1,36 +1,26 @@
 
 
-# Melhoria: Gerar prompts visuais a partir da copy final
+# Adicionar controle de escala da imagem nos cards
 
 ## Problema
-
-Hoje, o `generate-content` gera o `visual_prompt` de cada slide **junto com o texto** numa única chamada. Isso faz com que os prompts visuais sejam genéricos e desconexos do conteúdo real dos cards — a IA está tentando criar tudo ao mesmo tempo.
+Hoje só é possível mover a imagem para cima/baixo (offset Y). O usuário quer também poder aumentar ou diminuir a área da imagem dentro do card.
 
 ## Solução
 
-Adicionar uma **segunda etapa** no fluxo: após gerar o conteúdo textual (estratégia + slides), fazer uma chamada adicional à IA para gerar visual prompts **baseados na copy final** de cada slide.
+### `src/pages/CardGenerator.tsx`
 
-### Fluxo novo
+1. **Novo state `imageScales`** — `Record<number, number>` com valor default `1.0` (escala 100%). Range: `0.5` a `1.5` (50% a 150% do tamanho calculado automaticamente).
 
-```text
-1. generate-content → estratégia + slides (texto)
-2. [NOVO] Para cada slide, gerar visual_prompt usando título + body + estratégia como contexto
-```
+2. **Atualizar `renderCard`** — receber parâmetro `scale` além de `offsetY`. Aplicar o scale no cálculo de `imgW` e `imgH`:
+   - `imgW = (CANVAS_W - imgPadding * 2) * scale`
+   - `imgH` ajustado proporcionalmente
+   - Centralizar horizontalmente quando `scale < 1`
 
-### Implementação
+3. **Botões de + e −** ao lado dos botões de mover imagem (ChevronUp/Down), usando ícones `ZoomIn` / `ZoomOut` ou `Plus` / `Minus`:
+   - "−" diminui scale em 0.1 (min 0.5)
+   - "+" aumenta scale em 0.1 (max 1.5)
 
-**`supabase/functions/generate-content/index.ts`**:
+4. **Passar `imageScales`** no `useEffect` de renderização, junto com `imageOffsets`.
 
-1. Adicionar um novo system prompt `VISUAL_PROMPT_SYSTEM` especializado em criar prompts visuais a partir de copy finalizada — com instruções de cena, composição, iluminação, estilo, coerência entre slides
-2. Após receber o JSON do carrossel, fazer uma segunda chamada à IA enviando todos os slides (título, body, role, emotional_goal) + estratégia + visual_style, pedindo um array de visual_prompts
-3. Substituir os visual_prompts originais pelos novos, mais contextuais
-4. Para slides com `visual_prompt: "none"` (CTA), manter como está
-
-### Detalhes técnicos
-
-- A segunda chamada recebe o contexto completo: estratégia, tom, nicho, estilo visual, e **todo o texto final** de cada slide
-- O prompt instrui a IA a criar imagens que complementem visualmente a narrativa, não que repitam o texto
-- Mantém coerência estética entre slides (mesma paleta, ambiente, sujeito)
-- Não afeta o fluxo de Reels (scene_suggestions continuam como estão)
-- Custo: uma chamada extra por geração de carrossel (trade-off aceitável pela qualidade)
+Mudança contida em um único arquivo. Sem impacto em outros componentes.
 
