@@ -62,12 +62,12 @@ export function ResultsView({
     }
     setSaving(true);
     const title = content.reels?.title || content.carousel?.title || "Sem título";
-    const { error } = await supabase.from("generations").insert({
+    const { error } = await supabase.from("generations").insert([{
       title,
       format: content.input.format,
       niche: content.input.niche,
       content: content as unknown as Record<string, unknown>,
-    });
+    }]);
     setSaving(false);
     if (error) {
       toast.error("Erro ao salvar: " + error.message);
