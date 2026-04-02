@@ -31,6 +31,8 @@ Responda APENAS com o novo prompt visual, sem aspas, sem explicação.`,
   },
 };
 
+// --- Provider-specific AI callers ---
+
 async function callGoogleAI(apiKey: string, system: string, userPrompt: string): Promise<string> {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -53,8 +55,93 @@ async function callGoogleAI(apiKey: string, system: string, userPrompt: string):
 
   const data = await response.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!content) throw new Error("No content in AI response");
+  if (!content) throw new Error("No content in Google AI response");
   return content.trim();
+}
+
+async function callOpenAI(apiKey: string, system: string, userPrompt: string): Promise<string> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.8,
+    }),
+  });
+
+  if (!response.ok) {
+    const status = response.status;
+    const body = await response.text();
+    if (status === 429) throw new Error("RATE_LIMITED");
+    throw new Error(`OpenAI error [${status}]: ${body}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("No content in OpenAI response");
+  return content.trim();
+}
+
+async function callAnthropic(apiKey: string, system: string, userPrompt: string): Promise<string> {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      system,
+      messages: [{ role: "user", content: userPrompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const status = response.status;
+    const body = await response.text();
+    if (status === 429) throw new Error("RATE_LIMITED");
+    throw new Error(`Anthropic error [${status}]: ${body}`);
+  }
+
+  const data = await response.json();
+  const text = data.content?.[0]?.text;
+  if (!text) throw new Error("No content in Anthropic response");
+  return text.trim();
+}
+
+// --- Router ---
+
+type Provider = "google" | "openai" | "anthropic";
+
+async function callAI(provider: Provider, system: string, userPrompt: string): Promise<string> {
+  switch (provider) {
+    case "google": {
+      const key = Deno.env.get("GOOGLE_AI_API_KEY");
+      if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada.");
+      return callGoogleAI(key, system, userPrompt);
+    }
+    case "openai": {
+      const key = Deno.env.get("OPENAI_API_KEY");
+      if (!key) throw new Error("OPENAI_API_KEY não configurada.");
+      return callOpenAI(key, system, userPrompt);
+    }
+    case "anthropic": {
+      const key = Deno.env.get("ANTHROPIC_API_KEY");
+      if (!key) throw new Error("ANTHROPIC_API_KEY não configurada.");
+      return callAnthropic(key, system, userPrompt);
+    }
+    default:
+      throw new Error(`Provider desconhecido: ${provider}`);
+  }
 }
 
 serve(async (req) => {
@@ -63,7 +150,7 @@ serve(async (req) => {
   }
 
   try {
-    const { field, action, slide, strategy, tone, niche } = await req.json();
+    const { field, action, slide, strategy, tone, niche, ai_provider = "google" } = await req.json();
 
     if (!field || !action || !slide) {
       return new Response(JSON.stringify({ error: "Missing required fields: field, action, slide" }), {
@@ -122,10 +209,7 @@ ${action === "regenerate" && field === "title" ? "Gere um novo TÍTULO para o sl
 ${action === "regenerate" && field === "body" ? "Gere um novo CORPO para o slide acima." : ""}
 ${action === "regenerate" && field === "visual_prompt" ? "Gere um novo PROMPT VISUAL para o slide acima." : ""}${formatRules}`;
 
-    const key = Deno.env.get("GOOGLE_AI_API_KEY");
-    if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada.");
-
-    const value = await callGoogleAI(key, systemPrompt, userPrompt);
+    const value = await callAI(ai_provider as Provider, systemPrompt, userPrompt);
 
     return new Response(JSON.stringify({ value }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
