@@ -308,7 +308,7 @@ export default function ContentEngine() {
             <LogOut className="w-3 h-3" /> Sair
           </Button>
           {canvaConnected ? (
-            <span className="inline-flex items-center gap-1 text-xs text-green-500 font-medium px-2 h-7">
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 h-7 text-emerald-500 dark:text-emerald-400">
               <CheckCircle className="w-3 h-3" /> Canva
             </span>
           ) : (
