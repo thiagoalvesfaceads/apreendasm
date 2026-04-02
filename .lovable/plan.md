@@ -1,14 +1,13 @@
 
 
-# Fix: desativar geração automática no modo "Colar JSON"
+# Fix: desativar geração automática no CardGenerator
 
 ## Problema
-O `generateImages` do formulário principal já está `false`, mas o toggle do modo "Colar JSON" (`pasteGenerateImages`) tem default `true` (linha 105). Quando o conteúdo é colado, as imagens são geradas automaticamente.
+No `CardGenerator.tsx` (linha 302-307), existe um `useEffect` que gera imagens automaticamente quando os slides são carregados e não há imagens em cache. Isso gasta créditos toda vez que o usuário abre a página.
 
 ## Alteração
 
-**`src/pages/ContentEngine.tsx`** (linha 105):
-- Mudar `pasteGenerateImages` default de `true` para `false`
+**`src/pages/CardGenerator.tsx`** — remover o `useEffect` das linhas 302-307 que chama `generateImages()` automaticamente. As imagens só serão geradas quando o usuário clicar no botão "Regenerar Imagens" manualmente.
 
-Apenas 1 linha alterada.
+1 bloco removido (6 linhas).
 
