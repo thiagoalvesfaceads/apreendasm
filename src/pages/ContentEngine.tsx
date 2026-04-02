@@ -491,7 +491,16 @@ export default function ContentEngine() {
                 {tabLabels[t] || t}
               </button>
             ))}
-            <div className="ml-auto flex items-center">
+            <div className="ml-auto flex items-center gap-2">
+              {result.carousel?.slides && (
+                <Button variant="secondary" size="sm" className="text-xs h-8 gap-1.5"
+                  onClick={() => {
+                    localStorage.setItem("card_generator_slides", JSON.stringify(result.carousel.slides));
+                    navigate("/card-generator");
+                  }}>
+                  <LayoutGrid className="w-3.5 h-3.5" /> Criar Cards Visuais
+                </Button>
+              )}
               <Button variant="ghost" size="sm" onClick={() => { setResult(null); setImages({}); }}
                 className="text-xs text-muted-foreground h-8">
                 ← Nova geração
