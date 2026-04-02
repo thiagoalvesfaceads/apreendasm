@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { code } = await req.json();
-    if (!code) {
-      return new Response(JSON.stringify({ error: "Missing code" }), {
+    const { code, code_verifier } = await req.json();
+    if (!code || !code_verifier) {
+      return new Response(JSON.stringify({ error: "Missing code or code_verifier" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
