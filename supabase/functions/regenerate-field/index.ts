@@ -80,6 +80,27 @@ serve(async (req) => {
       });
     }
 
+    const hasParagraphs = /\n\s*\n/.test(slide.body || "");
+    const hasBold = /\*\*.+?\*\*/.test(slide.body || "");
+    const hasHook = (slide.body || "").trimEnd().endsWith(">");
+
+    let formatRules = "";
+    if (hasParagraphs || hasBold || hasHook) {
+      const rules: string[] = [];
+      if (hasParagraphs) {
+        rules.push("- O texto atual tem MÚLTIPLOS PARÁGRAFOS separados por linhas em branco (\\n\\n). Você DEVE manter essa estrutura. NUNCA junte tudo em um bloco só. Cada parágrafo deve continuar separado por uma linha em branco.");
+        rules.push("- Ao encurtar: reduza DENTRO da estrutura de parágrafos atual, mantendo a separação.");
+        rules.push("- Ao alongar: aprofunde os parágrafos existentes ou adicione novos, mas NUNCA transforme em uma parede de texto contínua.");
+      }
+      if (hasBold) {
+        rules.push("- O texto atual usa **negrito** (marcadores **). Você DEVE preservar esse padrão. Mantenha as palavras/frases importantes em **negrito**.");
+      }
+      if (hasHook) {
+        rules.push("- O texto atual termina com uma frase-gancho curta seguida de '>'. Você DEVE manter esse padrão — o texto final DEVE terminar com uma frase-gancho curta + '>' (ex: 'te explico o seguinte >').");
+      }
+      formatRules = `\n\nREGRAS OBRIGATÓRIAS DE FORMATAÇÃO (NÃO IGNORAR):\n${rules.join("\n")}`;
+    }
+
     const userPrompt = `SLIDE #${slide.slide_number}
 Papel: ${slide.role}
 Título atual: ${slide.title}
@@ -99,8 +120,7 @@ ${action === "shorten" ? "Encurte o CORPO do slide acima." : ""}
 ${action === "lengthen" ? "Expanda e aprofunde o CORPO do slide acima." : ""}
 ${action === "regenerate" && field === "title" ? "Gere um novo TÍTULO para o slide acima." : ""}
 ${action === "regenerate" && field === "body" ? "Gere um novo CORPO para o slide acima." : ""}
-${action === "regenerate" && field === "visual_prompt" ? "Gere um novo PROMPT VISUAL para o slide acima." : ""}
-${slide.body?.trimEnd().endsWith(">") ? "REGRA OBRIGATÓRIA: O texto atual termina com uma frase-gancho curta seguida de '>'. Você DEVE manter esse padrão — o texto final DEVE terminar com uma frase-gancho curta + '>' (ex: 'te explico o seguinte >')." : ""}`;
+${action === "regenerate" && field === "visual_prompt" ? "Gere um novo PROMPT VISUAL para o slide acima." : ""}${formatRules}`;
 
     const key = Deno.env.get("GOOGLE_AI_API_KEY");
     if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada.");

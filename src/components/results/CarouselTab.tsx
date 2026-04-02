@@ -68,7 +68,7 @@ export function CarouselTab({ carousel, onRegenerateSlide }: CarouselTabProps) {
               </div>
             )}
             <h4 className="text-sm font-semibold text-foreground">{slide.title}</h4>
-            <p className="text-xs text-foreground/75 leading-relaxed">{slide.body}</p>
+            <p className="text-xs text-foreground/75 leading-relaxed whitespace-pre-wrap">{slide.body}</p>
             <div className="pt-2 border-t border-border/50">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Objetivo Emocional</span>
               <p className="text-xs text-foreground/60 mt-0.5">{slide.emotional_goal}</p>
