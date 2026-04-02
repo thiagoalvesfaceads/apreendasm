@@ -87,7 +87,7 @@ Responda APENAS com JSON válido no formato:
 
 async function callGoogleAI(apiKey: string, system: string, userPrompt: string) {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
