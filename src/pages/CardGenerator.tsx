@@ -460,14 +460,34 @@ export default function CardGenerator() {
                   <Upload className="w-3.5 h-3.5" /> Imagem
                 </Button>
                 {generatedImages[slide.slide_number] && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs px-2 text-destructive hover:text-destructive"
-                    onClick={() => removeImage(slide.slide_number)}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageOffsets((prev) => ({ ...prev, [slide.slide_number]: Math.max(-1, (prev[slide.slide_number] || 0) - 0.1) }))}
+                      title="Mover imagem para cima"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2"
+                      onClick={() => setImageOffsets((prev) => ({ ...prev, [slide.slide_number]: Math.min(1, (prev[slide.slide_number] || 0) + 0.1) }))}
+                      title="Mover imagem para baixo"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs px-2 text-destructive hover:text-destructive"
+                      onClick={() => removeImage(slide.slide_number)}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
