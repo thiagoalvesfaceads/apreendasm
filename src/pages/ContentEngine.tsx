@@ -98,6 +98,8 @@ export default function ContentEngine() {
   const [images, setImages] = useState<Record<number, string>>({});
   const [activeTab, setActiveTab] = useState("estrategia");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<"generate" | "paste">("generate");
   const [pasteJson, setPasteJson] = useState("");
   const [pasteGenerateImages, setPasteGenerateImages] = useState(true);
