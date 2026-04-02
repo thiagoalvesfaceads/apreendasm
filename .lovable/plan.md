@@ -1,24 +1,33 @@
 
 
-# Preservar estado do Content Engine ao navegar para o Card Generator
+# Edição inline de slides + regeneração individual de imagem
 
-## Problema
-Quando o usuário vai para `/card-generator` e volta, o estado do Content Engine (resultado gerado, imagens, formulário) é perdido porque está todo em `useState` — reseta ao desmontar o componente.
+## O que muda
 
-## Solução
-Salvar o estado completo do Content Engine no `sessionStorage` ao navegar para o Card Generator, e restaurá-lo ao voltar.
+### 1. Tornar slides editáveis na aba "Carrossel" (`ContentEngine.tsx`)
+- Cada slide terá campos editáveis inline para **título**, **body** e **visual_prompt**
+- Ao clicar no texto, ele vira um `textarea`/`input` editável. Ao sair (blur), salva no `result`
+- Adicionar botão de regenerar imagem individual em cada slide (já existe `handleRegenerateSlide` — basta conectar com o prompt editado)
 
-## Alterações
+### 2. Edição do prompt visual na aba "Prompts Visuais"
+- Tornar cada prompt editável inline (textarea com blur-save)
+- Mudança no prompt reflete automaticamente no `result.carousel.slides[n].visual_prompt`
 
-### `src/pages/ContentEngine.tsx`
+### 3. Regeneração individual na aba "Imagens"
+- Já existe `handleRegenerateSlide` — ele usa o `visual_prompt` do slide atual
+- Como o prompt é editável, regenerar usará o prompt atualizado automaticamente
 
-1. **Ao clicar em "Criar Cards Visuais"**: antes de navegar, salvar no `sessionStorage`:
-   - `content_engine_result` → o objeto `result` completo
-   - `content_engine_images` → as imagens geradas
-   - `content_engine_form` → o estado do formulário
-   - `content_engine_tab` → a tab ativa
+### 4. Geração sob demanda (1 por 1) na aba "Imagens"
+- Desativar geração automática de todas as imagens por padrão
+- Na aba "Imagens", cada slide mostra um botão "Gerar" quando não tem imagem, e "Regenerar" quando já tem
+- Manter botão "Gerar Todas" como opção, mas não automático
 
-2. **No `useEffect` de inicialização**: verificar se existe estado salvo no `sessionStorage`. Se sim, restaurar `result`, `images`, `form` e `activeTab`, e limpar o `sessionStorage`.
+## Arquivos alterados
 
-Isso garante que ao voltar (botão "Content Engine" no Card Generator), o usuário vê exatamente o que tinha antes — sem precisar regenerar.
+- **`src/pages/ContentEngine.tsx`**:
+  - Criar função `updateSlideField(slideNumber, field, value)` que atualiza `result.carousel.slides` no state
+  - Na seção "Carrossel" (linha ~607): trocar texto estático por inputs editáveis para `title`, `body`, `visual_prompt`
+  - Na seção "Prompts Visuais" (linha ~647): trocar texto do prompt por textarea editável
+  - Na seção "Imagens" (linha ~686): adicionar botão "Gerar" individual para slides sem imagem
+  - Mudar `form.generateImages` default para `false`
 
