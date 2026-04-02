@@ -201,7 +201,8 @@ async function renderCard(
     const imgW = CANVAS_W - imgPadding * 2;
     const availableH = CANVAS_H - cursorY - imgPadding;
     const imgH = Math.min(availableH, imgW * 0.75);
-    const imgY = cursorY;
+    const maxImgY = CANVAS_H - imgPadding - imgH;
+    const imgY = Math.max(cursorY, Math.min(maxImgY, cursorY + offsetY));
     const imgX = imgPadding;
     const radius = 20;
 
@@ -217,8 +218,7 @@ async function renderCard(
       sx = (slideImg.width - sw) / 2;
     } else {
       sh = slideImg.width / dstRatio;
-      const centerSy = (slideImg.height - sh) / 2;
-      sy = Math.max(0, Math.min(slideImg.height - sh, centerSy + offsetY * centerSy));
+      sy = (slideImg.height - sh) / 2;
     }
     ctx.drawImage(slideImg, sx, sy, sw, sh, imgX, imgY, imgW, imgH);
     ctx.restore();
