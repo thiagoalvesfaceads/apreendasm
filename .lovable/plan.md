@@ -1,25 +1,25 @@
 
 
-# Fix: Regra do gancho `>` faltando no regenerate-field
+# Fix: Cards 2 e 4 não renderizam negrito corretamente
 
 ## Problema
 
-No `generate-content`, a regra é clara: "Cada card (EXCETO o último) DEVE terminar com uma frase-gancho curta seguida de `>`". Mas no `regenerate-field`, o `FORMAT_RULES_CARD` diz apenas "Se houver uma frase-gancho..." — condicional, não obrigatório. Quando o usuário encurta ou regenera, o modelo pode remover o gancho.
+O modelo AI às vezes retorna marcações de negrito inconsistentes — por exemplo, `*"texto"*` (asterisco simples) em vez de `**texto**` (duplo). O código de renderização no canvas (`drawFormattedLine`, `measureFormattedWidth`, `wrapText`) só reconhece `**...**`, então variações são exibidas como texto cru.
 
 ## Solução
 
-### `supabase/functions/regenerate-field/index.ts` — `FORMAT_RULES_CARD`
+Adicionar uma função de normalização de markdown em `src/pages/CardGenerator.tsx` que é aplicada ao body de cada slide **antes** da renderização no canvas:
 
-Adicionar regra explícita obrigatória:
+1. Converter `*texto*` (itálico simples) para `**texto**` (negrito) — no contexto de cards, toda ênfase deve ser negrito
+2. Limpar padrões malformados como `**"texto"**` → `**texto**`  
+3. Remover asteriscos órfãos que não fecham
 
-```
-GANCHO DE TRANSIÇÃO:
-- Se NÃO for o último slide, o body DEVE terminar com uma frase-gancho curta seguida de ">" em parágrafo separado
-- Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "mas tem um detalhe >"
-- Se FOR o último slide (CTA), NÃO incluir gancho
-```
+### Arquivo: `src/pages/CardGenerator.tsx`
 
-Também ajustar a linha existente que diz "Se houver uma frase-gancho..." para "A frase-gancho DEVE estar em seu próprio parágrafo separado e terminar com `>`".
+Criar função `normalizeMarkdownBold(text: string): string` que:
+- Converte `*texto*` (não-duplo) para `**texto**`
+- Remove aspas internas desnecessárias dentro de negritos
+- É chamada no body do slide antes de passar para `wrapText` e `drawFormattedLine`
 
-O slide number já é passado no contexto, e o modelo pode inferir se é o último pelo papel (CTA) ou pelo número.
+Aplicar também no `measureFormattedWidth` para manter consistência entre medição e desenho.
 
