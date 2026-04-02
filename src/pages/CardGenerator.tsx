@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Download, ArrowLeft, Loader2, RefreshCw, Upload, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Download, ArrowLeft, Loader2, RefreshCw, Upload, X, ChevronUp, ChevronDown, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SlideData {
