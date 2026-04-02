@@ -52,6 +52,7 @@ interface FormState {
 
 export default function ContentEngine() {
   const { isAdmin, signOut, user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [canvaConnected, setCanvaConnected] = useState(false);
   const [canvaLoading, setCanvaLoading] = useState(false);
