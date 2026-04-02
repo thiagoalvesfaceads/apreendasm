@@ -1,14 +1,24 @@
 
 
-# Botão "Gerar imagens no Gemini" não aparecendo
+# Fix: crash ao abrir geração salva da biblioteca
 
-## Diagnóstico
-O código do botão já está presente em `VisualPromptsTab.tsx` (linhas 37-47). É provável que a alteração anterior não tenha sido aplicada corretamente ao build. 
+## Problema
+`ResultsView` acessa `content.input.format` sem verificação. Gerações salvas no banco podem não ter o campo `input`, causando `Cannot read properties of undefined (reading 'format')`.
 
 ## Solução
-Forçar a re-aplicação do arquivo — o conteúdo está correto, só precisa de um "touch" para o hot reload detectar a mudança. Vou re-salvar o arquivo sem alterações de lógica, apenas garantindo que o build pegue.
 
-### Arquivo: `src/components/results/VisualPromptsTab.tsx`
-- O botão já está implementado corretamente no código
-- Re-salvar o arquivo para forçar rebuild
+### `src/components/ResultsView.tsx`
+- Adicionar fallback para `content.input`: se não existir, inferir o formato a partir de `content.carousel` ou `content.reels`
+- Criar um `input` padrão quando ausente para não quebrar o restante do componente
+
+### `src/pages/Library.tsx`
+- Ao abrir uma geração, garantir que o `content` tenha `input` preenchido, usando `format` e `niche` da própria row do banco como fallback
+
+Mudança principal em `ResultsView.tsx` (linha 52):
+```typescript
+const format = content.input?.format || (content.carousel ? "carousel" : "reels");
+const tabs = TAB_CONFIG[format];
+```
+
+E ajustar as outras referências a `content.input.format` e `content.input.niche` para usar optional chaining com fallbacks.
 
