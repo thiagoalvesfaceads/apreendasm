@@ -143,6 +143,35 @@ export default function ContentEngine() {
     setResult(updated);
   };
 
+  const handleRegenerateField = async (slideNumber: number, field: string, action: string) => {
+    const slide = result?.carousel?.slides?.find((s: any) => s.slide_number === slideNumber);
+    if (!slide) return;
+    const key = `${slideNumber}-${field}-${action}`;
+    setRegeneratingField(key);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("regenerate-field", {
+        body: {
+          field,
+          action,
+          slide,
+          strategy: result.strategy,
+          tone: TONE_MAP[form.tone] || form.tone,
+          niche: form.niche,
+        },
+      });
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      if (data?.value) {
+        updateSlide(slideNumber, field, data.value);
+        toast.success("Campo atualizado!");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao regenerar campo.");
+    } finally {
+      setRegeneratingField(null);
+    }
+  };
+
   const handleLoadPasted = () => {
     try {
       const parsed = JSON.parse(pasteJson.trim());
