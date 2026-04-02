@@ -217,7 +217,8 @@ async function renderCard(
       sx = (slideImg.width - sw) / 2;
     } else {
       sh = slideImg.width / dstRatio;
-      sy = (slideImg.height - sh) / 2;
+      const centerSy = (slideImg.height - sh) / 2;
+      sy = Math.max(0, Math.min(slideImg.height - sh, centerSy + offsetY * centerSy));
     }
     ctx.drawImage(slideImg, sx, sy, sw, sh, imgX, imgY, imgW, imgH);
     ctx.restore();
