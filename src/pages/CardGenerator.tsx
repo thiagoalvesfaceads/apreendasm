@@ -326,18 +326,19 @@ export default function CardGenerator() {
     return () => { cancelled = true; };
   }, [generatedImages]);
 
-  // Render canvases when everything is ready
+  // Render canvases — re-render whenever slides, avatar or slide images change
   useEffect(() => {
     if (slides.length === 0) return;
-    const allImgsLoaded = Object.keys(generatedImages).length > 0 && Object.keys(slideImgs).length >= Object.keys(generatedImages).length;
-    // Render even without images (just text)
-    if (!loadingImages || allImgsLoaded) {
-      let anyRendered = false;
-      slides.forEach((slide) => {
-        const canvas = canvasRefs.current[slide.slide_number];
-        if (canvas) {
-          renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null);
-          anyRendered = true;
+    let anyRendered = false;
+    slides.forEach((slide) => {
+      const canvas = canvasRefs.current[slide.slide_number];
+      if (canvas) {
+        renderCard(canvas, slide, slides.length, avatarImg, slideImgs[slide.slide_number] || null);
+        anyRendered = true;
+      }
+    });
+    if (anyRendered) setRendered(true);
+  }, [slides, avatarImg, slideImgs]);
         }
       });
       if (anyRendered) setRendered(true);
