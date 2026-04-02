@@ -474,7 +474,7 @@ export default function CardGenerator() {
                       variant="outline"
                       size="sm"
                       className="text-xs px-2"
-                      onClick={() => setImageOffsets((prev) => ({ ...prev, [slide.slide_number]: Math.min(1, (prev[slide.slide_number] || 0) + 0.1) }))}
+                      onClick={() => setImageOffsets((prev) => ({ ...prev, [slide.slide_number]: Math.min(400, (prev[slide.slide_number] || 0) + 20) }))}
                       title="Mover imagem para baixo"
                     >
                       <ChevronDown className="w-3.5 h-3.5" />
