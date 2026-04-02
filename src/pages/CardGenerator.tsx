@@ -108,6 +108,12 @@ async function renderCard(
 
   let cursorY = PADDING;
 
+  const isTextOnly = !slideImg;
+  const titleFontSize = isTextOnly ? 54 : 46;
+  const titleLineHeight = isTextOnly ? 66 : 56;
+  const bodyFontSize = isTextOnly ? 38 : 32;
+  const bodyLineHeight = isTextOnly ? 52 : 44;
+
   // --- Header row ---
   const avatarX = PADDING;
   const avatarY = cursorY;
@@ -173,30 +179,57 @@ async function renderCard(
   ctx.textBaseline = "alphabetic";
   ctx.restore();
 
-  cursorY = avatarY + AVATAR_SIZE + AVATAR_BORDER * 2 + 40;
+  const headerEndY = avatarY + AVATAR_SIZE + AVATAR_BORDER * 2 + 40;
 
-  // --- Title ---
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 46px sans-serif";
-  const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, 56);
-  for (const line of titleLines) {
-    ctx.fillText(line, PADDING, cursorY + 46);
-    cursorY += 56;
-  }
-  cursorY += 20;
+  if (isTextOnly) {
+    // --- Text-only mode: vertically centered ---
+    const maxTextW = CANVAS_W - PADDING * 2;
+    ctx.font = `bold ${titleFontSize}px sans-serif`;
+    const titleLines = wrapText(ctx, slide.title, maxTextW, titleLineHeight);
+    ctx.font = `${bodyFontSize}px sans-serif`;
+    const bodyLines = wrapText(ctx, slide.body, maxTextW, bodyLineHeight);
 
-  // --- Body ---
-  ctx.fillStyle = "#e2e8f0";
-  ctx.font = "32px sans-serif";
-  const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, 44);
-  for (const line of bodyLines) {
-    ctx.fillText(line, PADDING, cursorY + 32);
-    cursorY += 44;
-  }
-  cursorY += 30;
+    const totalTextH = titleLines.length * titleLineHeight + 30 + bodyLines.length * bodyLineHeight;
+    const availableH = CANVAS_H - headerEndY - PADDING;
+    cursorY = headerEndY + Math.max(0, (availableH - totalTextH) / 2);
 
-  // --- Generated image ---
-  if (slideImg) {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${titleFontSize}px sans-serif`;
+    for (const line of titleLines) {
+      ctx.fillText(line, PADDING, cursorY + titleFontSize);
+      cursorY += titleLineHeight;
+    }
+    cursorY += 30;
+
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = `${bodyFontSize}px sans-serif`;
+    for (const line of bodyLines) {
+      ctx.fillText(line, PADDING, cursorY + bodyFontSize);
+      cursorY += bodyLineHeight;
+    }
+  } else {
+    // --- Normal mode with image ---
+    cursorY = headerEndY;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${titleFontSize}px sans-serif`;
+    const titleLines = wrapText(ctx, slide.title, CANVAS_W - PADDING * 2, titleLineHeight);
+    for (const line of titleLines) {
+      ctx.fillText(line, PADDING, cursorY + titleFontSize);
+      cursorY += titleLineHeight;
+    }
+    cursorY += 20;
+
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = `${bodyFontSize}px sans-serif`;
+    const bodyLines = wrapText(ctx, slide.body, CANVAS_W - PADDING * 2, bodyLineHeight);
+    for (const line of bodyLines) {
+      ctx.fillText(line, PADDING, cursorY + bodyFontSize);
+      cursorY += bodyLineHeight;
+    }
+    cursorY += 30;
+
+    // --- Generated image ---
     const imgPadding = PADDING;
     const imgW = CANVAS_W - imgPadding * 2;
     const availableH = CANVAS_H - cursorY - imgPadding;
@@ -209,7 +242,6 @@ async function renderCard(
     ctx.save();
     drawRoundedRect(ctx, imgX, imgY, imgW, imgH, radius);
     ctx.clip();
-    // Cover-fit
     const srcRatio = slideImg.width / slideImg.height;
     const dstRatio = imgW / imgH;
     let sx = 0, sy = 0, sw = slideImg.width, sh = slideImg.height;
@@ -424,13 +456,22 @@ export default function CardGenerator() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {slides.map((slide) => (
             <div key={slide.slide_number} className="space-y-3">
-              <div className="border border-border rounded-xl overflow-hidden bg-card">
+              <div className="relative border border-border rounded-xl overflow-hidden bg-card">
                 <canvas
                   ref={(el) => { canvasRefs.current[slide.slide_number] = el; }}
                   width={CANVAS_W}
                   height={CANVAS_H}
                   className="w-full h-auto"
                 />
+                {generatedImages[slide.slide_number] && (
+                  <button
+                    onClick={() => removeImage(slide.slide_number)}
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full w-7 h-7 flex items-center justify-center transition-colors"
+                    title="Remover imagem"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button
