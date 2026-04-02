@@ -59,10 +59,25 @@ const Library = () => {
   };
 
   if (selected) {
+    const contentWithInput = {
+      ...selected.content,
+      input: selected.content.input || {
+        idea: "",
+        format: selected.format as "reels" | "carousel",
+        goal: "discovery" as const,
+        awareness: "cold" as const,
+        tone: "reflective" as const,
+        niche: selected.niche || "",
+        cards: 7,
+        generate_images: false,
+        visual_style: "clean_realistic" as const,
+        ai_provider: "google" as const,
+      },
+    };
     return (
       <div className="min-h-screen bg-background py-12 px-4">
         <ResultsView
-          content={selected.content}
+          content={contentWithInput}
           onBack={() => setSelected(null)}
           onRegenerate={() => {}}
         />
