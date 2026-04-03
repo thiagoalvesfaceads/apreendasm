@@ -20,9 +20,62 @@ async function generateSingleImage(
   timestamp: number,
 ): Promise<string | null> {
   const isThiago = visual_style === "carrosseis_thiago";
-  const styleHint = isThiago
-    ? " Style: Premium editorial photography, dramatic lighting, golden warm tones, deep blacks, shallow depth of field f/1.8, metaphorical symbolic imagery, luxury magazine aesthetic. Leave large negative space areas for typography overlay. NO text, NO letters, NO words in the image."
-    : visual_style ? ` Style: ${visual_style}.` : "";
+  if (isThiago) {
+    // For Thiago style, the prompt already contains full card instructions with text
+    const fullPrompt = `Create a complete Instagram card design (1080x1080px). ${prompt}. Render ALL text exactly as specified — large, bold, legible sans-serif display typography. Text in the specified colors (white, black, or orange #E85D04). The typography must be sharp, clean, and perfectly readable. Professional graphic design quality.`;
+    // Use the same generation logic below
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await delay(1500);
+      try {
+        const aiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: fullPrompt }] }],
+              generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+            }),
+          }
+        );
+        if (!aiResponse.ok) {
+          const status = aiResponse.status;
+          const text = await aiResponse.text();
+          console.error(`Google AI error for prompt ${index} (attempt ${attempt}):`, status, text);
+          if (status === 429) break;
+          continue;
+        }
+        const data = await aiResponse.json();
+        const parts = data.candidates?.[0]?.content?.parts || [];
+        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
+        if (!imagePart) {
+          console.warn(`No image in response for prompt ${index} (attempt ${attempt}), retrying...`);
+          continue;
+        }
+        const base64 = imagePart.inlineData.data;
+        const mimeType = imagePart.inlineData.mimeType;
+        const ext = mimeType === "image/jpeg" ? "jpg" : "png";
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        const filePath = `${timestamp}_${index}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("generated-images")
+          .upload(filePath, bytes, { contentType: mimeType, upsert: true });
+        if (uploadError) {
+          console.error(`Upload error for prompt ${index}:`, uploadError);
+          return null;
+        }
+        const { data: publicUrl } = supabase.storage
+          .from("generated-images")
+          .getPublicUrl(filePath);
+        return publicUrl.publicUrl;
+      } catch (err) {
+        console.error(`Error processing prompt ${index} (attempt ${attempt}):`, err);
+      }
+    }
+    return null;
+  }
+
+  const styleHint = visual_style ? ` Style: ${visual_style}.` : "";
   const fullPrompt = `Generate an image: ${prompt}.${styleHint} High quality, professional, suitable for Instagram carousel. Do not include any text in the image.`;
 
   for (let attempt = 0; attempt < 2; attempt++) {

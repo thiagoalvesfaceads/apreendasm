@@ -99,37 +99,43 @@ Responda APENAS com JSON válido no formato:
   ]
 }`;
 
-const VISUAL_PROMPT_THIAGO_SYSTEM = `Você é um diretor de arte especializado em criar prompts visuais para carrosséis de alto impacto no estilo "Thiago Alcântara". Sua função é analisar o conteúdo textual FINALIZADO de cada slide e criar prompts visuais que complementem a narrativa de forma METAFÓRICA e EDITORIAL.
+const VISUAL_PROMPT_THIAGO_SYSTEM = `Você é um diretor de arte e designer gráfico especializado em criar CARDS COMPLETOS (imagem + tipografia) para carrosséis de alto impacto no estilo "Thiago Alcântara".
+
+Sua função é analisar o conteúdo textual FINALIZADO de cada slide e criar um prompt visual que gere um CARD COMPLETO — com imagem editorial de fundo E tipografia grande integrada.
 
 ESTILO DE REFERÊNCIA:
-- Fotografia editorial premium, estilo revista de negócios/lifestyle de alto padrão
-- Imagens METAFÓRICAS que representam conceitos abstratos através de objetos e cenas concretas
-- Exemplos de sujeitos: moedas empilhadas, baú antigo, mãos segurando objetos simbólicos, estradas com ponto de fuga, objetos de luxo em fundo escuro, close-ups dramáticos
-- Iluminação dramática com contrastes fortes (golden hour, rim light, spotlight)
-- Paleta dominante: tons quentes dourados, preto profundo, sépia, âmbar
-- Composição com AMPLO espaço negativo para acomodar tipografia grande sobreposta
-- NUNCA inclua texto, letras, palavras ou tipografia na imagem
-- NUNCA gere rostos humanos completos — prefira mãos, silhuetas, costas, detalhes corporais
+- Cards 1080x1080px com tipografia display enorme e impactante
+- Imagens editoriais METAFÓRICAS como fundo ou elemento visual (moedas, baú, mãos, estrada, objetos simbólicos)
+- Paleta: fundo alternando entre PRETO e BRANCO. Texto principal em BRANCO (fundo escuro) ou PRETO (fundo claro). Palavras-chave de destaque SEMPRE em LARANJA (#E85D04)
+- Branding "THIAGO ALCÂNTARA" sempre no topo em fonte pequena e elegante
+- Iluminação dramática: golden hour, rim light, spotlight, tons quentes dourados
+- Profundidade de campo rasa (f/1.4 - f/2.8)
 
-LAYOUT E COMPOSIÇÃO:
-- Cada imagem deve funcionar como fundo ou elemento contido em um card com tipografia grande
-- Deixe pelo menos 40% da imagem como espaço negativo (áreas escuras ou desfocadas) para texto
-- Prefira composições assimétricas com o sujeito em um terço da imagem
-- Profundidade de campo rasa (f/1.4 - f/2.8) para destacar o sujeito e desfocar o fundo
-- Aspecto quadrado (1:1) sempre
+LAYOUTS POSSÍVEIS (varie entre os slides):
+1. "image-top": Imagem editorial ocupa metade superior, texto grande na metade inferior sobre fundo sólido
+2. "text-overlay": Imagem editorial full-bleed com overlay escuro, texto grande sobreposto
+3. "text-only": Fundo sólido (preto ou branco), apenas tipografia enorme e dramática, sem imagem
+4. "image-bottom": Texto grande no topo, imagem editorial na metade inferior
+5. "contained-center": Imagem editorial centralizada menor, texto ao redor
+
+REGRAS DE TIPOGRAFIA NO PROMPT:
+- Inclua o TEXTO EXATO que deve aparecer no card (título do slide)
+- Especifique quais palavras devem estar em LARANJA (#E85D04)
+- O texto deve ser em fonte sans-serif bold/black display, grande e impactante
+- Separe visualmente as linhas de texto para máximo impacto
+- Para o corpo do texto (body), inclua apenas a frase mais impactante ou um resumo de 1 linha
 
 COERÊNCIA:
-- Mantenha o MESMO sujeito temático ou universo visual em todos os slides
-- Se o primeiro slide usa moedas/dinheiro, mantenha objetos do mesmo universo nos demais
-- Alterne entre close-ups extremos e planos médios para variedade dentro da coerência
-- Para slides de CTA (último slide), retorne "none" como visual_prompt
+- Mantenha o MESMO universo visual/temático em todos os slides
+- Alterne entre fundos escuros e claros para criar ritmo visual
+- Para slides de CTA (último slide), use layout "text-only" com fundo preto e texto grande em branco/laranja. Retorne "none" como visual_prompt APENAS se o slide for puramente CTA sem valor visual.
 
 Responda APENAS com JSON válido no formato:
 {
   "visual_prompts": [
     {
       "slide_number": 1,
-      "visual_prompt": "string (prompt detalhado para geração de imagem)"
+      "visual_prompt": "string (prompt completo para gerar o card com imagem + texto integrado)"
     }
   ]
 }`;
@@ -330,11 +336,20 @@ Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_
       content = await callAI(ai_provider, CAROUSEL_SYSTEM, carouselPrompt);
 
       // --- Second step: generate visual prompts based on final copy ---
+      const isThiagoStyle = visual_style === "carrosseis_thiago";
       const slidesContext = content.slides
-        .map((s: any) => `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`)
+        .map((s: any) => {
+          let line = `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`;
+          if (isThiagoStyle) {
+            // Extract the most impactful phrase from body for the card
+            const bodySnippet = (s.body || "").split("\n\n")[0]?.replace(/\*\*/g, "").substring(0, 120) || "";
+            line += ` | TEXTO PARA O CARD: Título="${s.title}" | Frase-chave="${bodySnippet}"`;
+          }
+          return line;
+        })
         .join("\n");
 
-      const visualPromptRequest = `Crie prompts visuais para cada slide deste carrossel, baseados no conteúdo textual FINAL abaixo.
+      const visualBaseRequest = `Crie prompts visuais para cada slide deste carrossel, baseados no conteúdo textual FINAL abaixo.
 
 ESTRATÉGIA:
 - Dor/Desejo/Tensão: ${strategy.pain_desire_tension}
@@ -352,6 +367,19 @@ ${slidesContext}
 Para o ÚLTIMO slide (CTA), retorne visual_prompt como "none".
 Mantenha coerência visual entre todos os slides — mesma paleta, sujeito, ambiente.
 Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
+
+      const visualPromptRequest = isThiagoStyle
+        ? visualBaseRequest + `
+
+IMPORTANTE — ESTILO THIAGO:
+Cada visual_prompt deve descrever um CARD COMPLETO (1080x1080px) com:
+1. A imagem editorial de fundo (metafórica, dramática)
+2. O TEXTO EXATO do slide renderizado em tipografia grande e impactante
+3. Especifique quais palavras ficam em LARANJA (#E85D04)
+4. Inclua "THIAGO ALCÂNTARA" no topo como branding
+5. Varie os layouts entre os slides (image-top, text-overlay, text-only, etc.)
+O prompt deve conter as frases reais que a IA precisa renderizar no card.`
+        : visualBaseRequest;
 
       const visualSystem = visual_style === "carrosseis_thiago" ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
       try {
