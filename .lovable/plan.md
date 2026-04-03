@@ -1,41 +1,17 @@
 
 
-# Gerar imagens COM texto no estilo Carrosséis Thiago
+# Alterar proporção das imagens Thiago para 3:4
 
 ## Problema
-Os prompts visuais do estilo Thiago não incluem as frases/títulos dos slides. O sistema instrui explicitamente "NUNCA inclua texto na imagem". O usuário quer que a IA gere o card completo — imagem editorial + tipografia grande integrada.
+As imagens do estilo Carrosséis Thiago estão sendo geradas em 1080x1080 (1:1). O ideal para Instagram é 3:4 (1080x1440).
 
 ## Mudanças
 
-### 1. `supabase/functions/generate-content/index.ts` — VISUAL_PROMPT_THIAGO_SYSTEM
+### 1. `supabase/functions/generate-content/index.ts`
+Substituir todas as referências a `1080x1080px` por `1080x1440px (proporção 3:4)` no `VISUAL_PROMPT_THIAGO_SYSTEM` e nas instruções do visual prompt request para o estilo Thiago.
 
-Reescrever o system prompt para:
-- **INCLUIR** o título e frase-chave do slide no prompt visual
-- Instruir a IA a gerar um card completo: fundo editorial + tipografia grande estilo Thiago
-- Definir estilo tipográfico: fonte bold/display, palavras-chave em laranja (#E85D04), resto em branco sobre fundo escuro ou preto sobre fundo claro
-- Manter as instruções de fotografia editorial (iluminação dramática, tons dourados, etc.)
-- Incluir branding "THIAGO ALCÂNTARA" no topo de cada card
-- Cada prompt deve especificar: o texto exato a renderizar, posição do texto (topo/centro/embaixo), layout (texto sobre imagem, imagem-topo + texto-embaixo, etc.)
+### 2. `supabase/functions/generate-images/index.ts`
+Na linha 25, alterar o fullPrompt do estilo Thiago de `1080x1080px` para `1080x1440px, aspect ratio 3:4 (vertical/portrait)`.
 
-Formato do visual_prompt passará a incluir o texto do slide:
-```
-"Crie um card 1080x1080px com fundo escuro. Imagem editorial: [descrição da cena]. 
-Tipografia sobreposta: título '[TÍTULO DO SLIDE]' em fonte bold grande, 
-palavra-chave em laranja #E85D04, restante em branco. Branding 'THIAGO ALCÂNTARA' no topo."
-```
-
-### 2. `supabase/functions/generate-images/index.ts` — fullPrompt para Thiago
-
-Quando `visual_style === "carrosseis_thiago"`:
-- **Remover** as instruções "NO text, NO letters, NO words"
-- **Remover** "Do not include any text in the image"
-- Substituir por instruções que reforcem: renderizar o texto exatamente como especificado no prompt, com tipografia grande, legível, e integrada ao design
-- Adicionar instrução de aspecto 1:1, 1080x1080px
-
-### 3. Fluxo no `generate-content` — visual prompt request
-
-Atualizar o `visualPromptRequest` para o estilo Thiago para que envie o **texto completo** (título + body resumido) de cada slide junto com as instruções visuais, para que o prompt final contenha as frases reais a serem renderizadas.
-
-## Risco
-Modelos de IA ainda cometem erros em tipografia (letras trocadas, layout irregular). A qualidade vai depender do modelo Gemini. Se os resultados não ficarem bons, podemos revisitar a abordagem de sobrepor texto no CardGenerator.
+Duas substituições simples de dimensão, sem mudança de lógica.
 
