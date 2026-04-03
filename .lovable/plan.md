@@ -1,26 +1,47 @@
 
 
-# Adicionar controle de escala da imagem nos cards
+# Novo estilo visual: Carrosséis Thiago
 
 ## Problema
-Hoje só é possível mover a imagem para cima/baixo (offset Y). O usuário quer também poder aumentar ou diminuir a área da imagem dentro do card.
 
-## Solução
+Os estilos visuais existentes geram imagens genéricas. O usuário quer um estilo inspirado nas referências enviadas, com tipografia grande e impactante, imagens editoriais que complementam o texto, paleta com preto/branco e laranja como cor de destaque, e layouts variados (imagem acima do texto, texto sobre imagem, text-only com fontes enormes).
 
-### `src/pages/CardGenerator.tsx`
+## Análise das referências
 
-1. **Novo state `imageScales`** — `Record<number, number>` com valor default `1.0` (escala 100%). Range: `0.5` a `1.5` (50% a 150% do tamanho calculado automaticamente).
+As 10 imagens mostram padrões claros:
+- Tipografia display enorme, com palavras-chave em laranja (#E85D04)
+- Layouts variados: imagem-topo + texto-embaixo, texto-topo + imagem-embaixo, full-bleed com texto sobreposto, text-only dramático
+- Fundos alternando entre branco e preto conforme o tom do slide
+- Imagens editoriais (moedas, baú, mãos, estrada) que complementam metaforicamente o texto
+- Branding "THIAGO ALCÂNTARA" sempre no topo
 
-2. **Atualizar `renderCard`** — receber parâmetro `scale` além de `offsetY`. Aplicar o scale no cálculo de `imgW` e `imgH`:
-   - `imgW = (CANVAS_W - imgPadding * 2) * scale`
-   - `imgH` ajustado proporcionalmente
-   - Centralizar horizontalmente quando `scale < 1`
+## Mudanças
 
-3. **Botões de + e −** ao lado dos botões de mover imagem (ChevronUp/Down), usando ícones `ZoomIn` / `ZoomOut` ou `Plus` / `Minus`:
-   - "−" diminui scale em 0.1 (min 0.5)
-   - "+" aumenta scale em 0.1 (max 1.5)
+### 1. `src/types/content.ts`
+- Adicionar `"carrosseis_thiago"` ao tipo `VisualStyle`
+- Adicionar label `"Carrosséis Thiago"` em `VISUAL_STYLE_LABELS`
 
-4. **Passar `imageScales`** no `useEffect` de renderização, junto com `imageOffsets`.
+### 2. `src/pages/ContentEngine.tsx`
+- Adicionar `["carrosseis thiago", "Carrosséis Thiago"]` ao array `VISUAL_STYLE_OPTIONS`
 
-Mudança contida em um único arquivo. Sem impacto em outros componentes.
+### 3. `supabase/functions/generate-content/index.ts`
+- Quando `visual_style` for `"carrosseis thiago"`, usar instruções especializadas no `VISUAL_PROMPT_SYSTEM`:
+  - Imagens devem ser metafóricas, não literais
+  - Composição que deixe espaço para tipografia grande
+  - Estilo editorial, fotografia de estoque premium, iluminação dramática
+  - Alternância de mood (slides claros vs escuros)
+  - Sujeitos concretos e simbólicos (objetos, mãos, paisagens, close-ups)
+  - Jamais incluir texto na imagem gerada
+- O prompt visual deve indicar se a imagem funciona melhor como fundo (full-bleed) ou como elemento contido (com espaço para texto acima/abaixo)
+
+### 4. `supabase/functions/generate-images/index.ts`
+- Quando `visual_style` for `"carrosseis thiago"`, ajustar o `fullPrompt` com instruções específicas: editorial premium, sem texto, composição com espaço negativo para sobreposição de tipografia
+
+### Detalhes do prompt especializado
+
+O novo estilo instrui a IA a gerar imagens pensando na relação imagem-texto:
+- Cada prompt inclui uma tag de layout sugerido (`full-bleed`, `contained-top`, `contained-center`)
+- Imagens com espaço negativo estratégico para acomodar tipografia grande
+- Referências visuais concretas: "close-up de mãos segurando objeto", "paisagem com ponto de fuga central", "objeto simbólico em fundo escuro"
+- Coerência de paleta entre slides (tons quentes dourados + preto)
 
