@@ -100,6 +100,7 @@ export const VISUAL_STYLE_LABELS: Record<VisualStyle, string> = {
   human_everyday: "Humano Cotidiano",
   dramatic_cinematic: "Dramático Cinematográfico",
   minimal_sophisticated: "Minimalista Sofisticado",
+  carrosseis_thiago: "Carrosséis Thiago",
 };
 
 export const LEAD_TYPE_LABELS: Record<LeadType, string> = {

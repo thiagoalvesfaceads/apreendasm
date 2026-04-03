@@ -29,7 +29,7 @@ const TONE_OPTIONS = [
 ] as const;
 
 const VISUAL_STYLE_OPTIONS = [
-  ["clean realista", "Clean Realista"], ["editorial premium", "Editorial Premium"], ["humano e cotidiano", "Humano e Cotidiano"], ["dramático cinematográfico", "Dramático Cinemático"], ["minimalista sofisticado", "Minimalista Sofisticado"],
+  ["clean realista", "Clean Realista"], ["editorial premium", "Editorial Premium"], ["humano e cotidiano", "Humano e Cotidiano"], ["dramático cinematográfico", "Dramático Cinemático"], ["minimalista sofisticado", "Minimalista Sofisticado"], ["carrosseis thiago", "Carrosséis Thiago"],
 ] as const;
 
 const AI_PROVIDER_OPTIONS = [
