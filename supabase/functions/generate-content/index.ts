@@ -353,8 +353,9 @@ Para o ÚLTIMO slide (CTA), retorne visual_prompt como "none".
 Mantenha coerência visual entre todos os slides — mesma paleta, sujeito, ambiente.
 Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
 
+      const visualSystem = visual_style === "carrosseis_thiago" ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
       try {
-        const visualData = await callAI(ai_provider, VISUAL_PROMPT_SYSTEM, visualPromptRequest);
+        const visualData = await callAI(ai_provider, visualSystem, visualPromptRequest);
         if (visualData?.visual_prompts && Array.isArray(visualData.visual_prompts)) {
           content.slides = content.slides.map((slide: any) => {
             const vp = visualData.visual_prompts.find((v: any) => v.slide_number === slide.slide_number);
