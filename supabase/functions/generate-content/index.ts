@@ -336,11 +336,20 @@ Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_
       content = await callAI(ai_provider, CAROUSEL_SYSTEM, carouselPrompt);
 
       // --- Second step: generate visual prompts based on final copy ---
+      const isThiagoStyle = visual_style === "carrosseis_thiago";
       const slidesContext = content.slides
-        .map((s: any) => `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`)
+        .map((s: any) => {
+          let line = `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`;
+          if (isThiagoStyle) {
+            // Extract the most impactful phrase from body for the card
+            const bodySnippet = (s.body || "").split("\n\n")[0]?.replace(/\*\*/g, "").substring(0, 120) || "";
+            line += ` | TEXTO PARA O CARD: Título="${s.title}" | Frase-chave="${bodySnippet}"`;
+          }
+          return line;
+        })
         .join("\n");
 
-      const visualPromptRequest = `Crie prompts visuais para cada slide deste carrossel, baseados no conteúdo textual FINAL abaixo.
+      const visualBaseRequest = `Crie prompts visuais para cada slide deste carrossel, baseados no conteúdo textual FINAL abaixo.
 
 ESTRATÉGIA:
 - Dor/Desejo/Tensão: ${strategy.pain_desire_tension}
@@ -358,6 +367,19 @@ ${slidesContext}
 Para o ÚLTIMO slide (CTA), retorne visual_prompt como "none".
 Mantenha coerência visual entre todos os slides — mesma paleta, sujeito, ambiente.
 Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
+
+      const visualPromptRequest = isThiagoStyle
+        ? visualBaseRequest + `
+
+IMPORTANTE — ESTILO THIAGO:
+Cada visual_prompt deve descrever um CARD COMPLETO (1080x1080px) com:
+1. A imagem editorial de fundo (metafórica, dramática)
+2. O TEXTO EXATO do slide renderizado em tipografia grande e impactante
+3. Especifique quais palavras ficam em LARANJA (#E85D04)
+4. Inclua "THIAGO ALCÂNTARA" no topo como branding
+5. Varie os layouts entre os slides (image-top, text-overlay, text-only, etc.)
+O prompt deve conter as frases reais que a IA precisa renderizar no card.`
+        : visualBaseRequest;
 
       const visualSystem = visual_style === "carrosseis_thiago" ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
       try {
