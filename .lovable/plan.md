@@ -1,47 +1,41 @@
 
 
-# Novo estilo visual: Carrosséis Thiago
+# Gerar imagens COM texto no estilo Carrosséis Thiago
 
 ## Problema
-
-Os estilos visuais existentes geram imagens genéricas. O usuário quer um estilo inspirado nas referências enviadas, com tipografia grande e impactante, imagens editoriais que complementam o texto, paleta com preto/branco e laranja como cor de destaque, e layouts variados (imagem acima do texto, texto sobre imagem, text-only com fontes enormes).
-
-## Análise das referências
-
-As 10 imagens mostram padrões claros:
-- Tipografia display enorme, com palavras-chave em laranja (#E85D04)
-- Layouts variados: imagem-topo + texto-embaixo, texto-topo + imagem-embaixo, full-bleed com texto sobreposto, text-only dramático
-- Fundos alternando entre branco e preto conforme o tom do slide
-- Imagens editoriais (moedas, baú, mãos, estrada) que complementam metaforicamente o texto
-- Branding "THIAGO ALCÂNTARA" sempre no topo
+Os prompts visuais do estilo Thiago não incluem as frases/títulos dos slides. O sistema instrui explicitamente "NUNCA inclua texto na imagem". O usuário quer que a IA gere o card completo — imagem editorial + tipografia grande integrada.
 
 ## Mudanças
 
-### 1. `src/types/content.ts`
-- Adicionar `"carrosseis_thiago"` ao tipo `VisualStyle`
-- Adicionar label `"Carrosséis Thiago"` em `VISUAL_STYLE_LABELS`
+### 1. `supabase/functions/generate-content/index.ts` — VISUAL_PROMPT_THIAGO_SYSTEM
 
-### 2. `src/pages/ContentEngine.tsx`
-- Adicionar `["carrosseis thiago", "Carrosséis Thiago"]` ao array `VISUAL_STYLE_OPTIONS`
+Reescrever o system prompt para:
+- **INCLUIR** o título e frase-chave do slide no prompt visual
+- Instruir a IA a gerar um card completo: fundo editorial + tipografia grande estilo Thiago
+- Definir estilo tipográfico: fonte bold/display, palavras-chave em laranja (#E85D04), resto em branco sobre fundo escuro ou preto sobre fundo claro
+- Manter as instruções de fotografia editorial (iluminação dramática, tons dourados, etc.)
+- Incluir branding "THIAGO ALCÂNTARA" no topo de cada card
+- Cada prompt deve especificar: o texto exato a renderizar, posição do texto (topo/centro/embaixo), layout (texto sobre imagem, imagem-topo + texto-embaixo, etc.)
 
-### 3. `supabase/functions/generate-content/index.ts`
-- Quando `visual_style` for `"carrosseis thiago"`, usar instruções especializadas no `VISUAL_PROMPT_SYSTEM`:
-  - Imagens devem ser metafóricas, não literais
-  - Composição que deixe espaço para tipografia grande
-  - Estilo editorial, fotografia de estoque premium, iluminação dramática
-  - Alternância de mood (slides claros vs escuros)
-  - Sujeitos concretos e simbólicos (objetos, mãos, paisagens, close-ups)
-  - Jamais incluir texto na imagem gerada
-- O prompt visual deve indicar se a imagem funciona melhor como fundo (full-bleed) ou como elemento contido (com espaço para texto acima/abaixo)
+Formato do visual_prompt passará a incluir o texto do slide:
+```
+"Crie um card 1080x1080px com fundo escuro. Imagem editorial: [descrição da cena]. 
+Tipografia sobreposta: título '[TÍTULO DO SLIDE]' em fonte bold grande, 
+palavra-chave em laranja #E85D04, restante em branco. Branding 'THIAGO ALCÂNTARA' no topo."
+```
 
-### 4. `supabase/functions/generate-images/index.ts`
-- Quando `visual_style` for `"carrosseis thiago"`, ajustar o `fullPrompt` com instruções específicas: editorial premium, sem texto, composição com espaço negativo para sobreposição de tipografia
+### 2. `supabase/functions/generate-images/index.ts` — fullPrompt para Thiago
 
-### Detalhes do prompt especializado
+Quando `visual_style === "carrosseis_thiago"`:
+- **Remover** as instruções "NO text, NO letters, NO words"
+- **Remover** "Do not include any text in the image"
+- Substituir por instruções que reforcem: renderizar o texto exatamente como especificado no prompt, com tipografia grande, legível, e integrada ao design
+- Adicionar instrução de aspecto 1:1, 1080x1080px
 
-O novo estilo instrui a IA a gerar imagens pensando na relação imagem-texto:
-- Cada prompt inclui uma tag de layout sugerido (`full-bleed`, `contained-top`, `contained-center`)
-- Imagens com espaço negativo estratégico para acomodar tipografia grande
-- Referências visuais concretas: "close-up de mãos segurando objeto", "paisagem com ponto de fuga central", "objeto simbólico em fundo escuro"
-- Coerência de paleta entre slides (tons quentes dourados + preto)
+### 3. Fluxo no `generate-content` — visual prompt request
+
+Atualizar o `visualPromptRequest` para o estilo Thiago para que envie o **texto completo** (título + body resumido) de cada slide junto com as instruções visuais, para que o prompt final contenha as frases reais a serem renderizadas.
+
+## Risco
+Modelos de IA ainda cometem erros em tipografia (letras trocadas, layout irregular). A qualidade vai depender do modelo Gemini. Se os resultados não ficarem bons, podemos revisitar a abordagem de sobrepor texto no CardGenerator.
 
