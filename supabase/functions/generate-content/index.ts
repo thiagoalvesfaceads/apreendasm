@@ -104,7 +104,7 @@ const VISUAL_PROMPT_THIAGO_SYSTEM = `Você é um diretor de arte e designer grá
 Sua função é analisar o conteúdo textual FINALIZADO de cada slide e criar um prompt visual que gere um CARD COMPLETO — com imagem editorial de fundo E tipografia grande integrada.
 
 ESTILO DE REFERÊNCIA:
-- Cards 1080x1080px com tipografia display enorme e impactante
+- Cards 1080x1440px (proporção 3:4, vertical) com tipografia display enorme e impactante
 - Imagens editoriais METAFÓRICAS como fundo ou elemento visual (moedas, baú, mãos, estrada, objetos simbólicos)
 - Paleta: fundo alternando entre PRETO e BRANCO. Texto principal em BRANCO (fundo escuro) ou PRETO (fundo claro). Palavras-chave de destaque SEMPRE em LARANJA (#E85D04)
 - Branding "THIAGO ALCÂNTARA" sempre no topo em fonte pequena e elegante
@@ -372,7 +372,7 @@ Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
         ? visualBaseRequest + `
 
 IMPORTANTE — ESTILO THIAGO:
-Cada visual_prompt deve descrever um CARD COMPLETO (1080x1080px) com:
+Cada visual_prompt deve descrever um CARD COMPLETO (1080x1440px, proporção 3:4 vertical) com:
 1. A imagem editorial de fundo (metafórica, dramática)
 2. O TEXTO EXATO do slide renderizado em tipografia grande e impactante
 3. Especifique quais palavras ficam em LARANJA (#E85D04)
