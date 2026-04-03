@@ -2,7 +2,7 @@ export type ContentFormat = "reels" | "carousel";
 export type ContentGoal = "discovery" | "connection" | "relationship" | "conversion";
 export type AudienceAwareness = "cold" | "warm" | "hot";
 export type ContentTone = "reflective" | "confrontational" | "didactic" | "emotional" | "calm_authority" | "card";
-export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_everyday" | "dramatic_cinematic" | "minimal_sophisticated";
+export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_everyday" | "dramatic_cinematic" | "minimal_sophisticated" | "carrosseis_thiago";
 export type LeadType = "offer" | "promise" | "problem_solution" | "big_secret" | "revelation" | "story";
 export type SlideRole = "hook" | "tension" | "insight" | "solution" | "cta" | "development" | "deepening";
 export type AIProvider = "google" | "openai" | "anthropic";
@@ -100,6 +100,7 @@ export const VISUAL_STYLE_LABELS: Record<VisualStyle, string> = {
   human_everyday: "Humano Cotidiano",
   dramatic_cinematic: "Dramático Cinematográfico",
   minimal_sophisticated: "Minimalista Sofisticado",
+  carrosseis_thiago: "Carrosséis Thiago",
 };
 
 export const LEAD_TYPE_LABELS: Record<LeadType, string> = {

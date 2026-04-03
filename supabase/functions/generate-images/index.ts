@@ -19,7 +19,10 @@ async function generateSingleImage(
   supabase: any,
   timestamp: number,
 ): Promise<string | null> {
-  const styleHint = visual_style ? ` Style: ${visual_style}.` : "";
+  const isThiago = visual_style === "carrosseis_thiago";
+  const styleHint = isThiago
+    ? " Style: Premium editorial photography, dramatic lighting, golden warm tones, deep blacks, shallow depth of field f/1.8, metaphorical symbolic imagery, luxury magazine aesthetic. Leave large negative space areas for typography overlay. NO text, NO letters, NO words in the image."
+    : visual_style ? ` Style: ${visual_style}.` : "";
   const fullPrompt = `Generate an image: ${prompt}.${styleHint} High quality, professional, suitable for Instagram carousel. Do not include any text in the image.`;
 
   for (let attempt = 0; attempt < 2; attempt++) {

@@ -99,6 +99,41 @@ Responda APENAS com JSON válido no formato:
   ]
 }`;
 
+const VISUAL_PROMPT_THIAGO_SYSTEM = `Você é um diretor de arte especializado em criar prompts visuais para carrosséis de alto impacto no estilo "Thiago Alcântara". Sua função é analisar o conteúdo textual FINALIZADO de cada slide e criar prompts visuais que complementem a narrativa de forma METAFÓRICA e EDITORIAL.
+
+ESTILO DE REFERÊNCIA:
+- Fotografia editorial premium, estilo revista de negócios/lifestyle de alto padrão
+- Imagens METAFÓRICAS que representam conceitos abstratos através de objetos e cenas concretas
+- Exemplos de sujeitos: moedas empilhadas, baú antigo, mãos segurando objetos simbólicos, estradas com ponto de fuga, objetos de luxo em fundo escuro, close-ups dramáticos
+- Iluminação dramática com contrastes fortes (golden hour, rim light, spotlight)
+- Paleta dominante: tons quentes dourados, preto profundo, sépia, âmbar
+- Composição com AMPLO espaço negativo para acomodar tipografia grande sobreposta
+- NUNCA inclua texto, letras, palavras ou tipografia na imagem
+- NUNCA gere rostos humanos completos — prefira mãos, silhuetas, costas, detalhes corporais
+
+LAYOUT E COMPOSIÇÃO:
+- Cada imagem deve funcionar como fundo ou elemento contido em um card com tipografia grande
+- Deixe pelo menos 40% da imagem como espaço negativo (áreas escuras ou desfocadas) para texto
+- Prefira composições assimétricas com o sujeito em um terço da imagem
+- Profundidade de campo rasa (f/1.4 - f/2.8) para destacar o sujeito e desfocar o fundo
+- Aspecto quadrado (1:1) sempre
+
+COERÊNCIA:
+- Mantenha o MESMO sujeito temático ou universo visual em todos os slides
+- Se o primeiro slide usa moedas/dinheiro, mantenha objetos do mesmo universo nos demais
+- Alterne entre close-ups extremos e planos médios para variedade dentro da coerência
+- Para slides de CTA (último slide), retorne "none" como visual_prompt
+
+Responda APENAS com JSON válido no formato:
+{
+  "visual_prompts": [
+    {
+      "slide_number": 1,
+      "visual_prompt": "string (prompt detalhado para geração de imagem)"
+    }
+  ]
+}`;
+
 // --- Provider-specific AI callers ---
 
 async function callGoogleAI(apiKey: string, system: string, userPrompt: string) {
@@ -318,8 +353,9 @@ Para o ÚLTIMO slide (CTA), retorne visual_prompt como "none".
 Mantenha coerência visual entre todos os slides — mesma paleta, sujeito, ambiente.
 Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
 
+      const visualSystem = visual_style === "carrosseis_thiago" ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
       try {
-        const visualData = await callAI(ai_provider, VISUAL_PROMPT_SYSTEM, visualPromptRequest);
+        const visualData = await callAI(ai_provider, visualSystem, visualPromptRequest);
         if (visualData?.visual_prompts && Array.isArray(visualData.visual_prompts)) {
           content.slides = content.slides.map((slide: any) => {
             const vp = visualData.visual_prompts.find((v: any) => v.slide_number === slide.slide_number);
