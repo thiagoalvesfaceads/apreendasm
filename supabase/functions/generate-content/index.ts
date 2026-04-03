@@ -372,7 +372,7 @@ Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
         ? visualBaseRequest + `
 
 IMPORTANTE — ESTILO THIAGO:
-Cada visual_prompt deve descrever um CARD COMPLETO (1080x1080px) com:
+Cada visual_prompt deve descrever um CARD COMPLETO (1080x1440px, proporção 3:4 vertical) com:
 1. A imagem editorial de fundo (metafórica, dramática)
 2. O TEXTO EXATO do slide renderizado em tipografia grande e impactante
 3. Especifique quais palavras ficam em LARANJA (#E85D04)

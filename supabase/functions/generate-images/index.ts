@@ -22,7 +22,7 @@ async function generateSingleImage(
   const isThiago = visual_style === "carrosseis_thiago";
   if (isThiago) {
     // For Thiago style, the prompt already contains full card instructions with text
-    const fullPrompt = `Create a complete Instagram card design (1080x1080px). ${prompt}. Render ALL text exactly as specified — large, bold, legible sans-serif display typography. Text in the specified colors (white, black, or orange #E85D04). The typography must be sharp, clean, and perfectly readable. Professional graphic design quality.`;
+    const fullPrompt = `Create a complete Instagram card design (1080x1440px, aspect ratio 3:4, vertical/portrait orientation). ${prompt}. Render ALL text exactly as specified — large, bold, legible sans-serif display typography. Text in the specified colors (white, black, or orange #E85D04). The typography must be sharp, clean, and perfectly readable. Professional graphic design quality.`;
     // Use the same generation logic below
     for (let attempt = 0; attempt < 2; attempt++) {
       if (attempt > 0) await delay(1500);
