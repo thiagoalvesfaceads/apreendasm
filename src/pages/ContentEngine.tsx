@@ -227,7 +227,7 @@ export default function ContentEngine() {
         goal: GOAL_MAP[form.goal] || form.goal, awareness: AWARENESS_MAP[form.awareness] || form.awareness,
         tone: TONE_MAP[form.tone] || form.tone, niche: form.niche, offer: form.offer,
         cards: parseInt(form.cards), generate_images: false,
-        visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, ai_provider: form.aiProvider,
+        visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, ai_model: form.aiModel,
       };
       const { data, error: fnError } = await supabase.functions.invoke("generate-content", { body });
       if (fnError) throw new Error(fnError.message);
