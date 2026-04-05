@@ -1,38 +1,65 @@
 
 
-# Fix: Error Handling + Rate Limiting
+# Expandir modelos de IA com custos específicos (usando suas APIs)
 
-## Problem
-Two issues identified:
+## Resumo
+Trocar a seleção genérica "Google / OpenAI / Anthropic" por modelos específicos com custo visível. Continua usando suas próprias API keys — sem Lovable AI Gateway.
 
-1. **Generic error message**: When the edge function returns a non-2xx response (like 429), `supabase.functions.invoke` throws a generic "Edge Function returned a non-2xx status code" instead of showing the actual error (RATE_LIMITED). This is because the Supabase JS client doesn't parse the response body on non-2xx responses — it puts the error in `fnError` and `data` is null.
+## Modelos disponíveis
 
-2. **Google API rate limit**: Your Google AI API key is hitting rate limits. This could be because the free tier has low RPM (requests per minute) limits.
+| Modelo | ID interno | Provider | API Model | Créditos |
+|--------|-----------|----------|-----------|----------|
+| Gemini 2.5 Flash Lite | `gemini-flash-lite` | google | `gemini-2.5-flash-lite` | 0 (grátis) |
+| Gemini 2.5 Flash | `gemini-flash` | google | `gemini-2.5-flash` | 1 |
+| Gemini 2.5 Pro | `gemini-pro` | google | `gemini-2.5-pro` | 3 |
+| GPT-4o Mini | `gpt-4o-mini` | openai | `gpt-4o-mini` | 2 |
+| GPT-4o | `gpt-4o` | openai | `gpt-4o` | 5 |
+| Claude Sonnet 4 | `claude-sonnet` | anthropic | `claude-sonnet-4-20250514` | 6 |
 
-## Changes
+## Mudanças
 
-### 1. Edge Function — Return 200 with error in body (all 3 functions)
-Instead of returning HTTP 429/402/500, always return HTTP 200 with the error in the JSON body. This way the Supabase client will parse the body correctly and the frontend can show proper error messages.
+### 1. `src/types/content.ts`
+- Substituir `AIProvider` por `AIModel` com os 6 valores acima
+- Criar `AI_MODEL_LABELS` com nome + custo (ex: `"Gemini Flash Lite — Grátis"`)
+- Criar `AI_MODEL_INFO` com mapeamento: `{ provider, apiModel, cost }`
+- Atualizar `ContentInput` para usar `ai_model` no lugar de `ai_provider`
 
-**Files**: `generate-content/index.ts`, `generate-images/index.ts`, `regenerate-field/index.ts`
+### 2. `src/components/GenerationForm.tsx`
+- Trocar o select de "Modelo de IA" para listar os 6 modelos específicos
+- Cada opção mostra nome + badge de custo (ex: "2 cr" ou "Grátis")
+- Default: `gemini-flash-lite` (grátis)
 
-Change the catch block and credit error responses to always return status 200 with `{ error: "..." }` in the body. Example:
-```typescript
-// Before (broken):
-return new Response(JSON.stringify({ error: msg }), { status: 429, ... });
+### 3. `src/hooks/useCredits.ts`
+- Atualizar `CREDIT_COSTS["generate-content"]` com os 6 modelos
+- Atualizar `estimateCost` para receber `ai_model` ao invés de `ai_provider`
 
-// After (works):
-return new Response(JSON.stringify({ error: msg }), { status: 200, ... });
-```
+### 4. `src/hooks/useContentGeneration.ts`
+- Enviar `ai_model` ao invés de `ai_provider` na chamada à edge function
 
-### 2. Frontend — Better error messages
-Update `useContentGeneration.ts` to also handle `INSUFFICIENT_CREDITS` error code from the edge function and show a user-friendly message in Portuguese.
+### 5. `supabase/functions/generate-content/index.ts`
+- Criar mapa `MODEL_CONFIG` que traduz o `ai_model` do request para `{ provider, apiModel, cost }`
+- Nas funções `callGoogleAI`, `callOpenAI`, `callAnthropic`: aceitar o modelo como parâmetro (não hardcoded)
+- Atualizar `callGoogleAI` para usar o model name dinâmico na URL
+- Atualizar `callOpenAI` para usar o model name dinâmico no body
+- Manter `callAnthropic` com modelo fixo (só tem 1 opção)
+- Atualizar `CREDIT_COSTS` no backend com os 6 valores
 
-### 3. Add retry logic for rate limiting (optional improvement)
-Add a simple 1-retry with delay in the Google AI caller inside the edge function to handle transient 429s.
+### 6. `supabase/functions/regenerate-field/index.ts`
+- Mesma mudança: aceitar `ai_model`, mapear para provider + modelo específico
+- Atualizar custos (todos continuam 1 crédito por regeneração)
 
-## Summary
-- 3 edge functions updated (return 200 on errors)
-- 1 frontend hook updated (better error messages)
-- User will see "Limite de requisições atingido" instead of generic error
+### 7. Re-deploy das 2 edge functions
+
+## Custo real estimado por geração (para calcular sua margem)
+
+| Modelo | Custo API (texto, ~2k tokens) | Créditos cobrados | Sua receita (1cr = R$0,01) |
+|--------|-------------------------------|-------------------|---------------------------|
+| Gemini Flash Lite | ~R$0,00 (free tier) | 0 | R$0,00 |
+| Gemini Flash | ~R$0,001 | 1 = R$0,01 | ~R$0,009 |
+| Gemini Pro | ~R$0,02 | 3 = R$0,03 | ~R$0,01 |
+| GPT-4o Mini | ~R$0,003 | 2 = R$0,02 | ~R$0,017 |
+| GPT-4o | ~R$0,03 | 5 = R$0,05 | ~R$0,02 |
+| Claude Sonnet | ~R$0,04 | 6 = R$0,06 | ~R$0,02 |
+
+*Valores aproximados para ~2000 tokens de entrada + ~1500 de saída por chamada. Generate-content faz 2-3 chamadas por geração.*
 
