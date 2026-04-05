@@ -327,7 +327,7 @@ serve(async (req) => {
       await supabaseAdmin.from("usage_log").insert({
         user_id: userId,
         function_name: "regenerate-field",
-        ai_model: ai_provider,
+        ai_model: ai_model,
         credits_used: creditCost,
         metadata: { field, action },
       });
