@@ -240,12 +240,12 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
       <div className="card-premium p-5 space-y-5">
         <div className="space-y-2">
           <Label className="text-sm font-medium text-foreground/80">Modelo de IA (Texto)</Label>
-          <Select value={aiProvider} onValueChange={(v) => setAiProvider(v as AIProvider)}>
+          <Select value={aiModel} onValueChange={(v) => setAiModel(v as AIModel)}>
             <SelectTrigger className="bg-secondary border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(AI_PROVIDER_LABELS).map(([k, v]) => (
+              {Object.entries(AI_MODEL_LABELS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
               ))}
             </SelectContent>
