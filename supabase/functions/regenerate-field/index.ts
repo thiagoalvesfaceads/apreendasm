@@ -71,11 +71,11 @@ interface ModelConfig {
 
 const MODEL_CONFIG: Record<string, ModelConfig> = {
   "gemini-flash-lite": { provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
-  "gemini-flash": { provider: "google", apiModel: "gemini-2.5-flash", cost: 1 },
-  "gemini-pro": { provider: "google", apiModel: "gemini-2.5-pro", cost: 3 },
-  "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 2 },
-  "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 5 },
-  "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 6 },
+  "gemini-flash": { provider: "google", apiModel: "gemini-2.5-flash", cost: 5 },
+  "gemini-pro": { provider: "google", apiModel: "gemini-2.5-pro", cost: 30 },
+  "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 10 },
+  "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 40 },
+  "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 50 },
 };
 
 // --- Provider-specific AI callers ---
@@ -272,7 +272,7 @@ serve(async (req) => {
 
     const { field, action, slide, strategy, tone, niche, ai_model = "gemini-flash-lite" } = await req.json();
 
-    const creditCost = 1; // flat cost for regeneration
+    const creditCost = 3; // flat cost for regeneration
     
     if (creditCost > 0 && userId) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {

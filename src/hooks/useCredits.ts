@@ -5,14 +5,14 @@ import { useAuth } from "@/hooks/useAuth";
 export const CREDIT_COSTS = {
   "generate-content": {
     "gemini-flash-lite": 0,
-    "gemini-flash": 1,
-    "gemini-pro": 3,
-    "gpt-4o-mini": 2,
-    "gpt-4o": 5,
-    "claude-sonnet": 6,
+    "gemini-flash": 5,
+    "gemini-pro": 30,
+    "gpt-4o-mini": 10,
+    "gpt-4o": 40,
+    "claude-sonnet": 50,
   },
   "generate-images": 36, // per image
-  "regenerate-field": 1, // flat cost per regeneration
+  "regenerate-field": 3, // flat cost per regeneration
 } as const;
 
 export function estimateCost(

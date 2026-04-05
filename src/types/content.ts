@@ -138,9 +138,9 @@ export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
 
 export const AI_MODEL_LABELS: Record<AIModel, string> = {
   "gemini-flash-lite": "Gemini Flash Lite — Grátis",
-  "gemini-flash": "Gemini Flash — 1 crédito",
-  "gemini-pro": "Gemini Pro — 3 créditos",
-  "gpt-4o-mini": "GPT-4o Mini — 2 créditos",
-  "gpt-4o": "GPT-4o — 5 créditos",
-  "claude-sonnet": "Claude Sonnet 4 — 6 créditos",
+  "gemini-flash": "Gemini Flash — 5 créditos",
+  "gemini-pro": "Gemini Pro — 30 créditos",
+  "gpt-4o-mini": "GPT-4o Mini — 10 créditos",
+  "gpt-4o": "GPT-4o — 40 créditos",
+  "claude-sonnet": "Claude Sonnet 4 — 50 créditos",
 };
