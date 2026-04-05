@@ -109,6 +109,21 @@ const Index = () => {
             </Card>
           </Link>
 
+          <Link to="/usage" className="group">
+            <Card className="h-full transition-colors hover:border-primary/50">
+              <CardHeader className="pb-2">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                  <Coins className="w-5 h-5 text-primary" />
+                </div>
+                <CardTitle className="text-base">Uso</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Ver créditos e histórico</p>
+                <ArrowRight className="w-4 h-4 text-muted-foreground mt-3 group-hover:translate-x-1 transition-transform" />
+              </CardContent>
+            </Card>
+          </Link>
+
           {isAdmin && (
             <Link to="/admin/users" className="group">
               <Card className="h-full transition-colors hover:border-primary/50">
