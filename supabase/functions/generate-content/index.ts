@@ -293,8 +293,6 @@ serve(async (req) => {
   }
 
   try {
-    // --- Credit check ---
-    const CREDIT_COSTS: Record<string, number> = { google: 0, openai: 5, anthropic: 6 };
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -309,9 +307,15 @@ serve(async (req) => {
     const userId = authUser?.id;
 
     const input = await req.json();
-    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_provider = "google" } = input;
+    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_model = "gemini-flash-lite" } = input;
 
-    const creditCost = CREDIT_COSTS[ai_provider] ?? 0;
+    const modelConfig = MODEL_CONFIG[ai_model];
+    if (!modelConfig) {
+      return new Response(JSON.stringify({ error: `Modelo desconhecido: ${ai_model}` }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const creditCost = modelConfig.cost;
     
     if (creditCost > 0 && userId) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
