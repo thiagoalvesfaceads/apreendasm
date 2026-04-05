@@ -59,7 +59,7 @@ const Index = () => {
         </div>
 
         {/* Quick action cards */}
-        <div className={`grid gap-4 mb-8 ${isAdmin ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
+        <div className="grid gap-4 mb-8 grid-cols-2 lg:grid-cols-4">
           <Link to="/content-engine" className="group">
             <Card className="h-full transition-colors hover:border-primary/50">
               <CardHeader className="pb-2">
