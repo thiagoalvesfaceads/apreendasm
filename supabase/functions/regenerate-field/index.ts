@@ -272,7 +272,7 @@ serve(async (req) => {
 
     const { field, action, slide, strategy, tone, niche, ai_model = "gemini-flash-lite" } = await req.json();
 
-    const creditCost = 1; // flat cost for regeneration
+    const creditCost = 3; // flat cost for regeneration
     
     if (creditCost > 0 && userId) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
