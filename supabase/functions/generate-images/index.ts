@@ -166,6 +166,31 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // --- Credit check ---
+    const COST_PER_IMAGE = 36;
+    const totalCost = prompts.length * COST_PER_IMAGE;
+    
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: authUser } } = await createClient(
+      supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!
+    ).auth.getUser(token);
+    const userId = authUser?.id;
+
+    if (totalCost > 0 && userId) {
+      const { error: debitError } = await supabase.rpc("debit_credits", {
+        p_user_id: userId,
+        p_amount: totalCost,
+      });
+      if (debitError) {
+        const isInsufficient = debitError.message?.includes("INSUFFICIENT_CREDITS");
+        return new Response(
+          JSON.stringify({ error: isInsufficient ? "INSUFFICIENT_CREDITS" : debitError.message }),
+          { status: isInsufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const timestamp = Date.now();
     const urls: (string | null)[] = new Array(prompts.length).fill(null);
 
