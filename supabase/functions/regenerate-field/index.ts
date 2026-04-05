@@ -232,7 +232,36 @@ serve(async (req) => {
   }
 
   try {
+    // --- Credit check ---
+    const CREDIT_COSTS: Record<string, number> = { google: 1, openai: 1, anthropic: 1 };
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: { user: authUser } } = await createClient(
+      supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!
+    ).auth.getUser(token);
+    const userId = authUser?.id;
+
     const { field, action, slide, strategy, tone, niche, ai_provider = "google" } = await req.json();
+
+    const creditCost = CREDIT_COSTS[ai_provider] ?? 1;
+    
+    if (creditCost > 0 && userId) {
+      const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
+        p_user_id: userId,
+        p_amount: creditCost,
+      });
+      if (debitError) {
+        const isInsufficient = debitError.message?.includes("INSUFFICIENT_CREDITS");
+        return new Response(
+          JSON.stringify({ error: isInsufficient ? "INSUFFICIENT_CREDITS" : debitError.message }),
+          { status: isInsufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     if (!field || !action || !slide) {
       return new Response(JSON.stringify({ error: "Missing required fields: field, action, slide" }), {
