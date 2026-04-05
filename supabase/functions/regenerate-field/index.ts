@@ -310,7 +310,7 @@ serve(async (req) => {
 
     const userPrompt = buildUserPrompt(field, action, slide, strategy, tone || "", niche || "");
 
-    let value = await callAI(ai_provider as Provider, systemPrompt, userPrompt);
+    let value = await callAI(ai_model, systemPrompt, userPrompt);
 
     // For shorten action, verify the result is actually shorter; retry once if not
     if (action === "shorten" && field === "body" && slide?.body) {
