@@ -446,7 +446,7 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
 
       const visualSystem = visual_style === "carrosseis_thiago" ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
       try {
-        const visualData = await callAI(ai_provider, visualSystem, visualPromptRequest);
+        const visualData = await callAI(ai_model, visualSystem, visualPromptRequest);
         if (visualData?.visual_prompts && Array.isArray(visualData.visual_prompts)) {
           content.slides = content.slides.map((slide: any) => {
             const vp = visualData.visual_prompts.find((v: any) => v.slide_number === slide.slide_number);
