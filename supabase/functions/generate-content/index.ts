@@ -480,7 +480,7 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
       await supabaseAdmin.from("usage_log").insert({
         user_id: userId,
         function_name: "generate-content",
-        ai_model: ai_provider,
+        ai_model: ai_model,
         credits_used: creditCost,
         metadata: { format, niche },
       });
