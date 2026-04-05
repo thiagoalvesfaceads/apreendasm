@@ -229,6 +229,7 @@ export default function ContentEngine() {
       if (data?.error) {
         if (data.error === "RATE_LIMITED") throw new Error("Limite de requisições atingido. Aguarde e tente novamente.");
         if (data.error === "PAYMENT_REQUIRED") throw new Error("Créditos de IA esgotados.");
+        if (data.error === "INSUFFICIENT_CREDITS") throw new Error("Créditos insuficientes. Recarregue seu saldo.");
         throw new Error(data.error);
       }
       setResult(data); setActiveTab("estrategia");
