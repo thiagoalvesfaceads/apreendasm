@@ -36,6 +36,7 @@ export interface ContentInput {
   generate_images: boolean;
   visual_style: VisualStyle;
   ai_provider: AIProvider;
+  ai_model: AIModel;
 }
 
 export interface Strategy {
