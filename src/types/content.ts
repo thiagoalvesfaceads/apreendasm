@@ -135,3 +135,12 @@ export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
   openai: "OpenAI GPT-4o",
   anthropic: "Claude Sonnet",
 };
+
+export const AI_MODEL_LABELS: Record<AIModel, string> = {
+  "gemini-flash-lite": "Gemini Flash Lite — Grátis",
+  "gemini-flash": "Gemini Flash — 1 cr",
+  "gemini-pro": "Gemini Pro — 3 cr",
+  "gpt-4o-mini": "GPT-4o Mini — 2 cr",
+  "gpt-4o": "GPT-4o — 5 cr",
+  "claude-sonnet": "Claude Sonnet 4 — 6 cr",
+};
