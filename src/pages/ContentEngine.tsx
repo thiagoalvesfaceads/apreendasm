@@ -508,7 +508,7 @@ export default function ContentEngine() {
                 {/* Cost estimation */}
                 {(() => {
                   const cost = estimateCost(
-                    form.aiProvider,
+                    form.aiModel,
                     form.generateImages && form.format === "carrossel",
                     parseInt(form.cards) || 7
                   );
@@ -518,7 +518,7 @@ export default function ContentEngine() {
                       <span className="text-foreground/80">
                         Esta geração vai custar <strong className="text-primary">{cost} créditos</strong>
                         {form.generateImages && form.format === "carrossel" && (
-                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiProvider, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 36})</span>
+                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiModel, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 36})</span>
                         )}
                       </span>
                     </div>
