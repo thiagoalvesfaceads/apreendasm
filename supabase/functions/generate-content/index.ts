@@ -266,8 +266,39 @@ serve(async (req) => {
   }
 
   try {
+    // --- Credit check ---
+    const CREDIT_COSTS: Record<string, number> = { google: 0, openai: 5, anthropic: 6 };
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Decode user from JWT
+    const { data: { user: authUser }, error: authError } = await createClient(
+      supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!
+    ).auth.getUser(token);
+    
+    const userId = authUser?.id;
+
     const input = await req.json();
     const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_provider = "google" } = input;
+
+    const creditCost = CREDIT_COSTS[ai_provider] ?? 0;
+    
+    if (creditCost > 0 && userId) {
+      const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
+        p_user_id: userId,
+        p_amount: creditCost,
+      });
+      if (debitError) {
+        const isInsufficient = debitError.message?.includes("INSUFFICIENT_CREDITS");
+        return new Response(
+          JSON.stringify({ error: isInsufficient ? "INSUFFICIENT_CREDITS" : debitError.message }),
+          { status: isInsufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const strategyPrompt = `Analise esta ideia e crie a camada estratégica:
 
