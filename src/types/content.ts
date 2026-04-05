@@ -6,6 +6,23 @@ export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_every
 export type LeadType = "offer" | "promise" | "problem_solution" | "big_secret" | "revelation" | "story";
 export type SlideRole = "hook" | "tension" | "insight" | "solution" | "cta" | "development" | "deepening";
 export type AIProvider = "google" | "openai" | "anthropic";
+export type AIModel = "gemini-flash-lite" | "gemini-flash" | "gemini-pro" | "gpt-4o-mini" | "gpt-4o" | "claude-sonnet";
+
+export interface AIModelInfo {
+  label: string;
+  provider: AIProvider;
+  apiModel: string;
+  cost: number;
+}
+
+export const AI_MODEL_INFO: Record<AIModel, AIModelInfo> = {
+  "gemini-flash-lite": { label: "Gemini 2.5 Flash Lite", provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
+  "gemini-flash": { label: "Gemini 2.5 Flash", provider: "google", apiModel: "gemini-2.5-flash", cost: 1 },
+  "gemini-pro": { label: "Gemini 2.5 Pro", provider: "google", apiModel: "gemini-2.5-pro", cost: 3 },
+  "gpt-4o-mini": { label: "GPT-4o Mini", provider: "openai", apiModel: "gpt-4o-mini", cost: 2 },
+  "gpt-4o": { label: "GPT-4o", provider: "openai", apiModel: "gpt-4o", cost: 5 },
+  "claude-sonnet": { label: "Claude Sonnet 4", provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 6 },
+};
 
 export interface ContentInput {
   idea: string;
