@@ -318,7 +318,7 @@ serve(async (req) => {
       if (value.trim().length >= originalLen) {
         console.warn(`Shorten did not reduce text (${originalLen} -> ${value.trim().length}), retrying...`);
         const retryPrompt = `O texto abaixo DEVE ser encurtado. A versão anterior que você gerou tinha ${value.trim().length} caracteres, mas o original tem ${originalLen}. Você DEVE reduzir para no máximo ${Math.round(originalLen * 0.7)} caracteres.\n\n${userPrompt}`;
-        value = await callAI(ai_provider as Provider, systemPrompt, retryPrompt);
+        value = await callAI(ai_model, systemPrompt, retryPrompt);
       }
     }
 
