@@ -317,6 +317,11 @@ export default function ContentEngine() {
                 <BookOpen className="w-3.5 h-3.5" /> Biblioteca
               </Button>
             </Link>
+            <Link to="/usage">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground text-xs h-8">
+                <Coins className="w-3.5 h-3.5" /> Uso
+              </Button>
+            </Link>
             {canvaConnected ? (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 h-8 text-emerald-500 dark:text-emerald-400">
                 <CheckCircle className="w-3.5 h-3.5" /> Canva
