@@ -164,7 +164,7 @@ export default function ContentEngine() {
           strategy: result.strategy,
           tone: TONE_MAP[form.tone] || form.tone,
           niche: form.niche,
-          ai_provider: form.aiProvider,
+          ai_model: form.aiModel,
         },
       });
       if (fnError) throw new Error(fnError.message);
