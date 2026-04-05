@@ -217,7 +217,28 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ urls }), {
+    // Log usage
+    if (userId && totalCost > 0) {
+      await supabase.from("usage_log").insert({
+        user_id: userId,
+        function_name: "generate-images",
+        ai_model: "gemini-3.1-flash-image",
+        credits_used: totalCost,
+        metadata: { image_count: prompts.length, visual_style },
+      });
+    }
+
+    let newBalance: number | undefined;
+    if (userId) {
+      const { data: creditData } = await supabase
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+      newBalance = creditData?.balance;
+    }
+
+    return new Response(JSON.stringify({ urls, credits_used: totalCost, balance: newBalance }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
