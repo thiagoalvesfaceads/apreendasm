@@ -186,7 +186,7 @@ serve(async (req) => {
         const isInsufficient = debitError.message?.includes("INSUFFICIENT_CREDITS");
         return new Response(
           JSON.stringify({ error: isInsufficient ? "INSUFFICIENT_CREDITS" : debitError.message }),
-          { status: isInsufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
