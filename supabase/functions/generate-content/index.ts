@@ -444,7 +444,29 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
       };
     }
 
-    return new Response(JSON.stringify(result), {
+    // Log usage
+    if (userId && creditCost > 0) {
+      await supabaseAdmin.from("usage_log").insert({
+        user_id: userId,
+        function_name: "generate-content",
+        ai_model: ai_provider,
+        credits_used: creditCost,
+        metadata: { format, niche },
+      });
+    }
+
+    // Get updated balance
+    let newBalance: number | undefined;
+    if (userId) {
+      const { data: creditData } = await supabaseAdmin
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+      newBalance = creditData?.balance;
+    }
+
+    return new Response(JSON.stringify({ ...result, credits_used: creditCost, balance: newBalance }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
