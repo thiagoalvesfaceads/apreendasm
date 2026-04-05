@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, BookOpen, Zap, Palette, ArrowRight, FileText, Video } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Palette, ArrowRight, FileText, Video, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CreditBalance } from "@/components/CreditBalance";
 
 interface RecentGeneration {
   id: string;
