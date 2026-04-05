@@ -297,7 +297,28 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ value }), {
+    // Log usage
+    if (userId && creditCost > 0) {
+      await supabaseAdmin.from("usage_log").insert({
+        user_id: userId,
+        function_name: "regenerate-field",
+        ai_model: ai_provider,
+        credits_used: creditCost,
+        metadata: { field, action },
+      });
+    }
+
+    let newBalance: number | undefined;
+    if (userId) {
+      const { data: creditData } = await supabaseAdmin
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+      newBalance = creditData?.balance;
+    }
+
+    return new Response(JSON.stringify({ value, credits_used: creditCost, balance: newBalance }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
