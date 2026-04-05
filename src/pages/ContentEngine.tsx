@@ -96,7 +96,7 @@ export default function ContentEngine() {
     idea: "", format: "carrossel", goal: "descoberta",
     awareness: "frio", tone: "reflexivo", niche: "",
     offer: "", cards: "7", generateImages: false,
-    visualStyle: "editorial premium", aiProvider: "google",
+    visualStyle: "editorial premium", aiModel: "gemini-flash-lite",
   });
 
   const [loading, setLoading] = useState(false);
