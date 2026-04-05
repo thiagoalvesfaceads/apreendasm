@@ -20,12 +20,13 @@ import {
   AudienceAwareness,
   ContentTone,
   VisualStyle,
-  AIProvider,
+  AIModel,
   GOAL_LABELS,
   AWARENESS_LABELS,
   TONE_LABELS,
   VISUAL_STYLE_LABELS,
-  AI_PROVIDER_LABELS,
+  AI_MODEL_LABELS,
+  AI_MODEL_INFO,
 } from "@/types/content";
 
 interface GenerationFormProps {
