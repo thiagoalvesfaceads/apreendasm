@@ -144,30 +144,39 @@ Responda APENAS com JSON válido no formato:
 // --- Provider-specific AI callers ---
 
 async function callGoogleAI(apiKey: string, system: string, userPrompt: string) {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: system }] },
-        generationConfig: { responseMimeType: "application/json" },
-      }),
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
+    
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userPrompt }] }],
+          systemInstruction: { parts: [{ text: system }] },
+          generationConfig: { responseMimeType: "application/json" },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const status = response.status;
+      const body = await response.text();
+      if (status === 429 && attempt === 0) {
+        console.warn("Google AI rate limited, retrying in 3s...");
+        continue;
+      }
+      if (status === 429) throw new Error("RATE_LIMITED");
+      throw new Error(`Google AI error [${status}]: ${body}`);
     }
-  );
 
-  if (!response.ok) {
-    const status = response.status;
-    const body = await response.text();
-    if (status === 429) throw new Error("RATE_LIMITED");
-    throw new Error(`Google AI error [${status}]: ${body}`);
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error("No content in Google AI response");
+    return JSON.parse(content);
   }
-
-  const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!content) throw new Error("No content in Google AI response");
-  return JSON.parse(content);
+  throw new Error("RATE_LIMITED");
 }
 
 async function callOpenAI(apiKey: string, system: string, userPrompt: string) {
