@@ -396,7 +396,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_prompt — deixe como string vazia.${cardToneInstruction}`;
 
-      content = await callAI(ai_provider, CAROUSEL_SYSTEM, carouselPrompt);
+      content = await callAI(ai_model, CAROUSEL_SYSTEM, carouselPrompt);
 
       // --- Second step: generate visual prompts based on final copy ---
       const isThiagoStyle = visual_style === "carrosseis_thiago";
