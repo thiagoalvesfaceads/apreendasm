@@ -296,6 +296,7 @@ export default function ContentEngine() {
               <Zap className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-bold text-sm">Content Engine <span className="text-primary">MASTER</span></span>
+            <CreditBalance />
           </div>
 
           <nav className="flex items-center gap-1">
