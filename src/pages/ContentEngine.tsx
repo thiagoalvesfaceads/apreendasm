@@ -54,7 +54,7 @@ interface FormState {
   cards: string;
   generateImages: boolean;
   visualStyle: string;
-  aiProvider: string;
+  aiModel: string;
 }
 
 export default function ContentEngine() {
