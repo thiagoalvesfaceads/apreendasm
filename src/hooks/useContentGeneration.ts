@@ -76,8 +76,8 @@ export function useContentGeneration() {
         if (data.error === "RATE_LIMITED") {
           throw new Error("Limite de requisições atingido. Aguarde um momento e tente novamente.");
         }
-        if (data.error === "PAYMENT_REQUIRED") {
-          throw new Error("Créditos de IA esgotados. Adicione créditos em Settings > Workspace > Usage.");
+        if (data.error === "PAYMENT_REQUIRED" || data.error === "INSUFFICIENT_CREDITS") {
+          throw new Error("Créditos insuficientes. Recarregue seus créditos para continuar.");
         }
         throw new Error(data.error);
       }
