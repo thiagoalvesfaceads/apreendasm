@@ -61,14 +61,31 @@ ${ANTI_CONTAMINATION}`,
   },
 };
 
+// --- Model config ---
+
+interface ModelConfig {
+  provider: "google" | "openai" | "anthropic";
+  apiModel: string;
+  cost: number;
+}
+
+const MODEL_CONFIG: Record<string, ModelConfig> = {
+  "gemini-flash-lite": { provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
+  "gemini-flash": { provider: "google", apiModel: "gemini-2.5-flash", cost: 1 },
+  "gemini-pro": { provider: "google", apiModel: "gemini-2.5-pro", cost: 3 },
+  "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 2 },
+  "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 5 },
+  "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 6 },
+};
+
 // --- Provider-specific AI callers ---
 
-async function callGoogleAI(apiKey: string, system: string, userPrompt: string): Promise<string> {
+async function callGoogleAI(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
     
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,7 +115,7 @@ async function callGoogleAI(apiKey: string, system: string, userPrompt: string):
   throw new Error("RATE_LIMITED");
 }
 
-async function callOpenAI(apiKey: string, system: string, userPrompt: string): Promise<string> {
+async function callOpenAI(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -106,7 +123,7 @@ async function callOpenAI(apiKey: string, system: string, userPrompt: string): P
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o",
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -128,7 +145,7 @@ async function callOpenAI(apiKey: string, system: string, userPrompt: string): P
   return content.trim();
 }
 
-async function callAnthropic(apiKey: string, system: string, userPrompt: string): Promise<string> {
+async function callAnthropic(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -137,7 +154,7 @@ async function callAnthropic(apiKey: string, system: string, userPrompt: string)
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model,
       max_tokens: 4096,
       system,
       messages: [{ role: "user", content: userPrompt }],
@@ -159,27 +176,28 @@ async function callAnthropic(apiKey: string, system: string, userPrompt: string)
 
 // --- Router ---
 
-type Provider = "google" | "openai" | "anthropic";
-
-async function callAI(provider: Provider, system: string, userPrompt: string): Promise<string> {
-  switch (provider) {
+async function callAI(aiModel: string, system: string, userPrompt: string): Promise<string> {
+  const config = MODEL_CONFIG[aiModel];
+  if (!config) throw new Error(`Modelo desconhecido: ${aiModel}`);
+  
+  switch (config.provider) {
     case "google": {
       const key = Deno.env.get("GOOGLE_AI_API_KEY");
       if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada.");
-      return callGoogleAI(key, system, userPrompt);
+      return callGoogleAI(key, system, userPrompt, config.apiModel);
     }
     case "openai": {
       const key = Deno.env.get("OPENAI_API_KEY");
       if (!key) throw new Error("OPENAI_API_KEY não configurada.");
-      return callOpenAI(key, system, userPrompt);
+      return callOpenAI(key, system, userPrompt, config.apiModel);
     }
     case "anthropic": {
       const key = Deno.env.get("ANTHROPIC_API_KEY");
       if (!key) throw new Error("ANTHROPIC_API_KEY não configurada.");
-      return callAnthropic(key, system, userPrompt);
+      return callAnthropic(key, system, userPrompt, config.apiModel);
     }
     default:
-      throw new Error(`Provider desconhecido: ${provider}`);
+      throw new Error(`Provider desconhecido: ${config.provider}`);
   }
 }
 
