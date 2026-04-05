@@ -259,8 +259,6 @@ serve(async (req) => {
   }
 
   try {
-    // --- Credit check ---
-    const CREDIT_COSTS: Record<string, number> = { google: 1, openai: 1, anthropic: 1 };
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -272,9 +270,9 @@ serve(async (req) => {
     ).auth.getUser(token);
     const userId = authUser?.id;
 
-    const { field, action, slide, strategy, tone, niche, ai_provider = "google" } = await req.json();
+    const { field, action, slide, strategy, tone, niche, ai_model = "gemini-flash-lite" } = await req.json();
 
-    const creditCost = CREDIT_COSTS[ai_provider] ?? 1;
+    const creditCost = 1; // flat cost for regeneration
     
     if (creditCost > 0 && userId) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
