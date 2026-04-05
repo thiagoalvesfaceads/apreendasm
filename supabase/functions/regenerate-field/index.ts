@@ -324,11 +324,9 @@ serve(async (req) => {
   } catch (e) {
     console.error("regenerate-field error:", e);
     const msg = e instanceof Error ? e.message : "Unknown error";
-    let status = 500;
-    if (msg === "RATE_LIMITED") status = 429;
 
     return new Response(JSON.stringify({ error: msg }), {
-      status,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
