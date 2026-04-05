@@ -34,8 +34,13 @@ const VISUAL_STYLE_OPTIONS = [
   ["clean realista", "Clean Realista"], ["editorial premium", "Editorial Premium"], ["humano e cotidiano", "Humano e Cotidiano"], ["dramático cinematográfico", "Dramático Cinemático"], ["minimalista sofisticado", "Minimalista Sofisticado"], ["carrosseis thiago", "Carrosséis Thiago"],
 ] as const;
 
-const AI_PROVIDER_OPTIONS = [
-  ["google", "Google Gemini"], ["openai", "OpenAI GPT-4o"], ["anthropic", "Claude Sonnet"],
+const AI_MODEL_OPTIONS = [
+  ["gemini-flash-lite", "Gemini Flash Lite", "Grátis"],
+  ["gemini-flash", "Gemini Flash", "1 cr"],
+  ["gemini-pro", "Gemini Pro", "3 cr"],
+  ["gpt-4o-mini", "GPT-4o Mini", "2 cr"],
+  ["gpt-4o", "GPT-4o", "5 cr"],
+  ["claude-sonnet", "Claude Sonnet 4", "6 cr"],
 ] as const;
 
 interface FormState {
@@ -49,7 +54,7 @@ interface FormState {
   cards: string;
   generateImages: boolean;
   visualStyle: string;
-  aiProvider: string;
+  aiModel: string;
 }
 
 export default function ContentEngine() {
@@ -91,7 +96,7 @@ export default function ContentEngine() {
     idea: "", format: "carrossel", goal: "descoberta",
     awareness: "frio", tone: "reflexivo", niche: "",
     offer: "", cards: "7", generateImages: false,
-    visualStyle: "editorial premium", aiProvider: "google",
+    visualStyle: "editorial premium", aiModel: "gemini-flash-lite",
   });
 
   const [loading, setLoading] = useState(false);
@@ -159,7 +164,7 @@ export default function ContentEngine() {
           strategy: result.strategy,
           tone: TONE_MAP[form.tone] || form.tone,
           niche: form.niche,
-          ai_provider: form.aiProvider,
+          ai_model: form.aiModel,
         },
       });
       if (fnError) throw new Error(fnError.message);
@@ -222,7 +227,7 @@ export default function ContentEngine() {
         goal: GOAL_MAP[form.goal] || form.goal, awareness: AWARENESS_MAP[form.awareness] || form.awareness,
         tone: TONE_MAP[form.tone] || form.tone, niche: form.niche, offer: form.offer,
         cards: parseInt(form.cards), generate_images: false,
-        visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, ai_provider: form.aiProvider,
+        visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, ai_model: form.aiModel,
       };
       const { data, error: fnError } = await supabase.functions.invoke("generate-content", { body });
       if (fnError) throw new Error(fnError.message);
@@ -473,10 +478,10 @@ export default function ContentEngine() {
                 <div className="border border-border rounded-xl p-5 space-y-5 bg-card">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground/80">Modelo de IA (Texto)</label>
-                    <Select value={form.aiProvider} onValueChange={(v) => set("aiProvider", v)}>
+                    <Select value={form.aiModel} onValueChange={(v) => set("aiModel", v)}>
                       <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {AI_PROVIDER_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        {AI_MODEL_OPTIONS.map(([k, label, cost]) => <SelectItem key={k} value={k}>{label} — {cost}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -503,7 +508,7 @@ export default function ContentEngine() {
                 {/* Cost estimation */}
                 {(() => {
                   const cost = estimateCost(
-                    form.aiProvider,
+                    form.aiModel,
                     form.generateImages && form.format === "carrossel",
                     parseInt(form.cards) || 7
                   );
@@ -513,7 +518,7 @@ export default function ContentEngine() {
                       <span className="text-foreground/80">
                         Esta geração vai custar <strong className="text-primary">{cost} créditos</strong>
                         {form.generateImages && form.format === "carrossel" && (
-                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiProvider, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 36})</span>
+                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiModel, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 36})</span>
                         )}
                       </span>
                     </div>

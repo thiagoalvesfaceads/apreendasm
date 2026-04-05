@@ -72,6 +72,7 @@ const Library = () => {
         generate_images: false,
         visual_style: "clean_realistic" as const,
         ai_provider: "google" as const,
+        ai_model: "gemini-flash-lite" as const,
       },
     };
     return (

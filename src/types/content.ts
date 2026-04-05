@@ -6,6 +6,23 @@ export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_every
 export type LeadType = "offer" | "promise" | "problem_solution" | "big_secret" | "revelation" | "story";
 export type SlideRole = "hook" | "tension" | "insight" | "solution" | "cta" | "development" | "deepening";
 export type AIProvider = "google" | "openai" | "anthropic";
+export type AIModel = "gemini-flash-lite" | "gemini-flash" | "gemini-pro" | "gpt-4o-mini" | "gpt-4o" | "claude-sonnet";
+
+export interface AIModelInfo {
+  label: string;
+  provider: AIProvider;
+  apiModel: string;
+  cost: number;
+}
+
+export const AI_MODEL_INFO: Record<AIModel, AIModelInfo> = {
+  "gemini-flash-lite": { label: "Gemini 2.5 Flash Lite", provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
+  "gemini-flash": { label: "Gemini 2.5 Flash", provider: "google", apiModel: "gemini-2.5-flash", cost: 1 },
+  "gemini-pro": { label: "Gemini 2.5 Pro", provider: "google", apiModel: "gemini-2.5-pro", cost: 3 },
+  "gpt-4o-mini": { label: "GPT-4o Mini", provider: "openai", apiModel: "gpt-4o-mini", cost: 2 },
+  "gpt-4o": { label: "GPT-4o", provider: "openai", apiModel: "gpt-4o", cost: 5 },
+  "claude-sonnet": { label: "Claude Sonnet 4", provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 6 },
+};
 
 export interface ContentInput {
   idea: string;
@@ -19,6 +36,7 @@ export interface ContentInput {
   generate_images: boolean;
   visual_style: VisualStyle;
   ai_provider: AIProvider;
+  ai_model: AIModel;
 }
 
 export interface Strategy {
@@ -116,4 +134,13 @@ export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
   google: "Google Gemini",
   openai: "OpenAI GPT-4o",
   anthropic: "Claude Sonnet",
+};
+
+export const AI_MODEL_LABELS: Record<AIModel, string> = {
+  "gemini-flash-lite": "Gemini Flash Lite — Grátis",
+  "gemini-flash": "Gemini Flash — 1 cr",
+  "gemini-pro": "Gemini Pro — 3 cr",
+  "gpt-4o-mini": "GPT-4o Mini — 2 cr",
+  "gpt-4o": "GPT-4o — 5 cr",
+  "claude-sonnet": "Claude Sonnet 4 — 6 cr",
 };

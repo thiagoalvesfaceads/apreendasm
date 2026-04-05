@@ -141,14 +141,31 @@ Responda APENAS com JSON válido no formato:
   ]
 }`;
 
+// --- Model config ---
+
+interface ModelConfig {
+  provider: "google" | "openai" | "anthropic";
+  apiModel: string;
+  cost: number;
+}
+
+const MODEL_CONFIG: Record<string, ModelConfig> = {
+  "gemini-flash-lite": { provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
+  "gemini-flash": { provider: "google", apiModel: "gemini-2.5-flash", cost: 1 },
+  "gemini-pro": { provider: "google", apiModel: "gemini-2.5-pro", cost: 3 },
+  "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 2 },
+  "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 5 },
+  "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 6 },
+};
+
 // --- Provider-specific AI callers ---
 
-async function callGoogleAI(apiKey: string, system: string, userPrompt: string) {
+async function callGoogleAI(apiKey: string, system: string, userPrompt: string, model: string) {
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
     
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,7 +196,7 @@ async function callGoogleAI(apiKey: string, system: string, userPrompt: string) 
   throw new Error("RATE_LIMITED");
 }
 
-async function callOpenAI(apiKey: string, system: string, userPrompt: string) {
+async function callOpenAI(apiKey: string, system: string, userPrompt: string, model: string) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -187,7 +204,7 @@ async function callOpenAI(apiKey: string, system: string, userPrompt: string) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o",
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -210,7 +227,7 @@ async function callOpenAI(apiKey: string, system: string, userPrompt: string) {
   return JSON.parse(content);
 }
 
-async function callAnthropic(apiKey: string, system: string, userPrompt: string) {
+async function callAnthropic(apiKey: string, system: string, userPrompt: string, model: string) {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -219,7 +236,7 @@ async function callAnthropic(apiKey: string, system: string, userPrompt: string)
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model,
       max_tokens: 4096,
       system,
       messages: [{ role: "user", content: userPrompt }],
@@ -245,27 +262,28 @@ async function callAnthropic(apiKey: string, system: string, userPrompt: string)
 
 // --- Router ---
 
-type Provider = "google" | "openai" | "anthropic";
-
-async function callAI(provider: Provider, system: string, userPrompt: string): Promise<any> {
-  switch (provider) {
+async function callAI(aiModel: string, system: string, userPrompt: string): Promise<any> {
+  const config = MODEL_CONFIG[aiModel];
+  if (!config) throw new Error(`Modelo desconhecido: ${aiModel}`);
+  
+  switch (config.provider) {
     case "google": {
       const key = Deno.env.get("GOOGLE_AI_API_KEY");
       if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada. Adicione nas configurações.");
-      return callGoogleAI(key, system, userPrompt);
+      return callGoogleAI(key, system, userPrompt, config.apiModel);
     }
     case "openai": {
       const key = Deno.env.get("OPENAI_API_KEY");
       if (!key) throw new Error("OPENAI_API_KEY não configurada. Adicione nas configurações.");
-      return callOpenAI(key, system, userPrompt);
+      return callOpenAI(key, system, userPrompt, config.apiModel);
     }
     case "anthropic": {
       const key = Deno.env.get("ANTHROPIC_API_KEY");
       if (!key) throw new Error("ANTHROPIC_API_KEY não configurada. Adicione nas configurações.");
-      return callAnthropic(key, system, userPrompt);
+      return callAnthropic(key, system, userPrompt, config.apiModel);
     }
     default:
-      throw new Error(`Provider desconhecido: ${provider}`);
+      throw new Error(`Provider desconhecido: ${config.provider}`);
   }
 }
 
@@ -275,8 +293,6 @@ serve(async (req) => {
   }
 
   try {
-    // --- Credit check ---
-    const CREDIT_COSTS: Record<string, number> = { google: 0, openai: 5, anthropic: 6 };
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -291,9 +307,15 @@ serve(async (req) => {
     const userId = authUser?.id;
 
     const input = await req.json();
-    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_provider = "google" } = input;
+    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_model = "gemini-flash-lite" } = input;
 
-    const creditCost = CREDIT_COSTS[ai_provider] ?? 0;
+    const modelConfig = MODEL_CONFIG[ai_model];
+    if (!modelConfig) {
+      return new Response(JSON.stringify({ error: `Modelo desconhecido: ${ai_model}` }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const creditCost = modelConfig.cost;
     
     if (creditCost > 0 && userId) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
@@ -323,7 +345,7 @@ Considere o nível de consciência da audiência (${awareness}) para calibrar a 
 O objetivo é ${goal}, então a estratégia deve maximizar esse resultado.
 O tom principal deve ser ${tone}.`;
 
-    const strategy = await callAI(ai_provider, STRATEGY_SYSTEM, strategyPrompt);
+    const strategy = await callAI(ai_model, STRATEGY_SYSTEM, strategyPrompt);
 
     let content;
     if (format === "reels") {
@@ -347,7 +369,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie um roteiro envolvente seguindo a estrutura Hook > Contexto > Conflito > Conexão > CTA.`;
 
-      content = await callAI(ai_provider, REELS_SYSTEM, reelsPrompt);
+      content = await callAI(ai_model, REELS_SYSTEM, reelsPrompt);
     } else {
       const cardToneInstruction = tone === "card"
         ? `\n\nINSTRUÇÃO ESPECIAL — TOM "CARD":\nCada slide deve ter um body denso e de impacto. Use storytelling, frases de impacto e progressão emocional. O estilo é de posts de autoridade no Instagram — como se cada card fosse um micro-post completo. Cada parágrafo deve ter peso próprio. Não use frases genéricas ou superficiais. Escreva como Alfredo Soares, Gary Vee ou grandes criadores de conteúdo de autoridade. Cada card deve provocar reflexão profunda.\n\nTAMANHO DO BODY:\n- A MAIORIA dos slides deve ter no máximo 2 parágrafos densos\n- Apenas o slide central (se 5 slides → slide 3, se 7 slides → slide 4, se número par de slides → o mais próximo do último) pode ter até 3 parágrafos\n- O último slide (CTA) pode ter até 3 parágrafos\n- O gancho de transição (">") conta como parágrafo separado\n- NUNCA exceda esses limites. Priorize impacto por frase, não volume de texto.\n\nGANCHO DE TRANSIÇÃO: Cada card (EXCETO o último) DEVE terminar com uma frase-gancho curta seguida de ">" para instigar a leitura do próximo card. Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "olha o que acontece >", "mas tem um detalhe >", "e o melhor ainda vem >". A frase deve ser natural e criar tensão/curiosidade.\n\nÚLTIMO CARD (CTA): O último slide deve ser puramente textual, SEM imagem. Defina o visual_prompt como "none". O body deve ser um texto persuasivo de alta conversão com a oferta/chamada para ação. Centralizado, direto, emocional. Como um fechamento de venda irresistível.\n\nFORMATAÇÃO OBRIGATÓRIA DO BODY:\n- Separe cada parágrafo com duas quebras de linha (\\n\\n) dentro do campo "body" do JSON\n- Use **negrito** (markdown com dois asteriscos) nas frases de maior impacto emocional, insights-chave e palavras de autoridade\n- NUNCA retorne o body como um bloco único de texto corrido\n- O gancho de transição final (com ">") deve estar em seu próprio parágrafo separado`
@@ -374,7 +396,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_prompt — deixe como string vazia.${cardToneInstruction}`;
 
-      content = await callAI(ai_provider, CAROUSEL_SYSTEM, carouselPrompt);
+      content = await callAI(ai_model, CAROUSEL_SYSTEM, carouselPrompt);
 
       // --- Second step: generate visual prompts based on final copy ---
       const isThiagoStyle = visual_style === "carrosseis_thiago";
@@ -424,7 +446,7 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
 
       const visualSystem = visual_style === "carrosseis_thiago" ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
       try {
-        const visualData = await callAI(ai_provider, visualSystem, visualPromptRequest);
+        const visualData = await callAI(ai_model, visualSystem, visualPromptRequest);
         if (visualData?.visual_prompts && Array.isArray(visualData.visual_prompts)) {
           content.slides = content.slides.map((slide: any) => {
             const vp = visualData.visual_prompts.find((v: any) => v.slide_number === slide.slide_number);
@@ -458,7 +480,7 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
       await supabaseAdmin.from("usage_log").insert({
         user_id: userId,
         function_name: "generate-content",
-        ai_model: ai_provider,
+        ai_model: ai_model,
         credits_used: creditCost,
         metadata: { format, niche },
       });
