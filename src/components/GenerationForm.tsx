@@ -61,7 +61,8 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
       cards,
       generate_images: generateImages,
       visual_style: visualStyle,
-      ai_provider: aiProvider,
+      ai_provider: AI_MODEL_INFO[aiModel].provider,
+      ai_model: aiModel,
     });
   };
 
