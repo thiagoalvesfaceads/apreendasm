@@ -478,10 +478,10 @@ export default function ContentEngine() {
                 <div className="border border-border rounded-xl p-5 space-y-5 bg-card">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground/80">Modelo de IA (Texto)</label>
-                    <Select value={form.aiProvider} onValueChange={(v) => set("aiProvider", v)}>
+                    <Select value={form.aiModel} onValueChange={(v) => set("aiModel", v)}>
                       <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {AI_PROVIDER_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        {AI_MODEL_OPTIONS.map(([k, label, cost]) => <SelectItem key={k} value={k}>{label} — {cost}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
