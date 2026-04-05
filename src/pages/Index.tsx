@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, BookOpen, Zap, Palette, ArrowRight, FileText, Video } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Palette, ArrowRight, FileText, Video, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CreditBalance } from "@/components/CreditBalance";
 
 interface RecentGeneration {
   id: string;
@@ -48,14 +49,17 @@ const Index = () => {
             <h1 className="text-2xl font-bold font-display">Olá, {displayName} 👋</h1>
             <p className="text-sm text-muted-foreground mt-1">O que vamos criar hoje?</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-muted-foreground">
-            <LogOut className="w-4 h-4" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-3">
+            <CreditBalance />
+            <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-muted-foreground">
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* Quick action cards */}
-        <div className={`grid gap-4 mb-8 ${isAdmin ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
+        <div className="grid gap-4 mb-8 grid-cols-2 lg:grid-cols-4">
           <Link to="/content-engine" className="group">
             <Card className="h-full transition-colors hover:border-primary/50">
               <CardHeader className="pb-2">
@@ -100,6 +104,21 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">
                   {canvaConnected ? "Conectado ✓" : "Não conectado"}
                 </p>
+                <ArrowRight className="w-4 h-4 text-muted-foreground mt-3 group-hover:translate-x-1 transition-transform" />
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/usage" className="group">
+            <Card className="h-full transition-colors hover:border-primary/50">
+              <CardHeader className="pb-2">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                  <Coins className="w-5 h-5 text-primary" />
+                </div>
+                <CardTitle className="text-base">Uso</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Ver créditos e histórico</p>
                 <ArrowRight className="w-4 h-4 text-muted-foreground mt-3 group-hover:translate-x-1 transition-transform" />
               </CardContent>
             </Card>

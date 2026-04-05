@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -265,8 +266,39 @@ serve(async (req) => {
   }
 
   try {
+    // --- Credit check ---
+    const CREDIT_COSTS: Record<string, number> = { google: 0, openai: 5, anthropic: 6 };
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Decode user from JWT
+    const { data: { user: authUser }, error: authError } = await createClient(
+      supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!
+    ).auth.getUser(token);
+    
+    const userId = authUser?.id;
+
     const input = await req.json();
     const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_provider = "google" } = input;
+
+    const creditCost = CREDIT_COSTS[ai_provider] ?? 0;
+    
+    if (creditCost > 0 && userId) {
+      const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
+        p_user_id: userId,
+        p_amount: creditCost,
+      });
+      if (debitError) {
+        const isInsufficient = debitError.message?.includes("INSUFFICIENT_CREDITS");
+        return new Response(
+          JSON.stringify({ error: isInsufficient ? "INSUFFICIENT_CREDITS" : debitError.message }),
+          { status: isInsufficient ? 402 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const strategyPrompt = `Analise esta ideia e crie a camada estratégica:
 
@@ -412,7 +444,29 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
       };
     }
 
-    return new Response(JSON.stringify(result), {
+    // Log usage
+    if (userId && creditCost > 0) {
+      await supabaseAdmin.from("usage_log").insert({
+        user_id: userId,
+        function_name: "generate-content",
+        ai_model: ai_provider,
+        credits_used: creditCost,
+        metadata: { format, niche },
+      });
+    }
+
+    // Get updated balance
+    let newBalance: number | undefined;
+    if (userId) {
+      const { data: creditData } = await supabaseAdmin
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+      newBalance = creditData?.balance;
+    }
+
+    return new Response(JSON.stringify({ ...result, credits_used: creditCost, balance: newBalance }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

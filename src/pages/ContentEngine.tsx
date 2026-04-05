@@ -3,9 +3,11 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2 } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { CreditBalance } from "@/components/CreditBalance";
+import { estimateCost } from "@/hooks/useCredits";
 import {
   Select,
   SelectContent,
@@ -227,6 +229,7 @@ export default function ContentEngine() {
       if (data?.error) {
         if (data.error === "RATE_LIMITED") throw new Error("Limite de requisições atingido. Aguarde e tente novamente.");
         if (data.error === "PAYMENT_REQUIRED") throw new Error("Créditos de IA esgotados.");
+        if (data.error === "INSUFFICIENT_CREDITS") throw new Error("Créditos insuficientes. Recarregue seu saldo.");
         throw new Error(data.error);
       }
       setResult(data); setActiveTab("estrategia");
@@ -292,6 +295,7 @@ export default function ContentEngine() {
               <Zap className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-bold text-sm">Content Engine <span className="text-primary">MASTER</span></span>
+            <CreditBalance />
           </div>
 
           <nav className="flex items-center gap-1">
@@ -310,6 +314,11 @@ export default function ContentEngine() {
             <Link to="/library">
               <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground text-xs h-8">
                 <BookOpen className="w-3.5 h-3.5" /> Biblioteca
+              </Button>
+            </Link>
+            <Link to="/usage">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground text-xs h-8">
+                <Coins className="w-3.5 h-3.5" /> Uso
               </Button>
             </Link>
             {canvaConnected ? (
@@ -490,6 +499,36 @@ export default function ContentEngine() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Cost estimation */}
+                {(() => {
+                  const cost = estimateCost(
+                    form.aiProvider,
+                    form.generateImages && form.format === "carrossel",
+                    parseInt(form.cards) || 7
+                  );
+                  return cost > 0 ? (
+                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+                      <Coins className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-foreground/80">
+                        Esta geração vai custar <strong className="text-primary">{cost} créditos</strong>
+                        {form.generateImages && form.format === "carrossel" && (
+                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiProvider, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 36})</span>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-sm">
+                      <Coins className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span className="text-foreground/80">
+                        Geração de texto <strong className="text-emerald-500">gratuita</strong> com Google Gemini
+                        {form.generateImages && form.format === "carrossel" && (
+                          <span className="text-muted-foreground"> + imagens: <strong className="text-primary">{(parseInt(form.cards) || 7) * 36} créditos</strong></span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-3 text-sm text-destructive">{error}</div>}
 

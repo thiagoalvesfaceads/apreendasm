@@ -98,6 +98,57 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_log: {
+        Row: {
+          ai_model: string
+          created_at: string | null
+          credits_used: number
+          function_name: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          ai_model: string
+          created_at?: string | null
+          credits_used?: number
+          function_name: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          ai_model?: string
+          created_at?: string | null
+          credits_used?: number
+          function_name?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          balance: number
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -121,6 +172,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      debit_credits: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
