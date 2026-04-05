@@ -345,7 +345,7 @@ Considere o nível de consciência da audiência (${awareness}) para calibrar a 
 O objetivo é ${goal}, então a estratégia deve maximizar esse resultado.
 O tom principal deve ser ${tone}.`;
 
-    const strategy = await callAI(ai_provider, STRATEGY_SYSTEM, strategyPrompt);
+    const strategy = await callAI(ai_model, STRATEGY_SYSTEM, strategyPrompt);
 
     let content;
     if (format === "reels") {
