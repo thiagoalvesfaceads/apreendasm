@@ -49,10 +49,13 @@ const Index = () => {
             <h1 className="text-2xl font-bold font-display">Olá, {displayName} 👋</h1>
             <p className="text-sm text-muted-foreground mt-1">O que vamos criar hoje?</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-muted-foreground">
-            <LogOut className="w-4 h-4" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-3">
+            <CreditBalance />
+            <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-muted-foreground">
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* Quick action cards */}

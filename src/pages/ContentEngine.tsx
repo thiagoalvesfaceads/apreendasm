@@ -499,6 +499,36 @@ export default function ContentEngine() {
                   </div>
                 </div>
 
+                {/* Cost estimation */}
+                {(() => {
+                  const cost = estimateCost(
+                    form.aiProvider,
+                    form.generateImages && form.format === "carrossel",
+                    parseInt(form.cards) || 7
+                  );
+                  return cost > 0 ? (
+                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+                      <Coins className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-foreground/80">
+                        Esta geração vai custar <strong className="text-primary">{cost} créditos</strong>
+                        {form.generateImages && form.format === "carrossel" && (
+                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiProvider, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 36})</span>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-sm">
+                      <Coins className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span className="text-foreground/80">
+                        Geração de texto <strong className="text-emerald-500">gratuita</strong> com Google Gemini
+                        {form.generateImages && form.format === "carrossel" && (
+                          <span className="text-muted-foreground"> + imagens: <strong className="text-primary">{(parseInt(form.cards) || 7) * 36} créditos</strong></span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-3 text-sm text-destructive">{error}</div>}
 
                 {/* Submit */}
