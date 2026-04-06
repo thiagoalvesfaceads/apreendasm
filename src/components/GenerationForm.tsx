@@ -80,8 +80,8 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
           <Zap className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs font-medium text-primary tracking-wide uppercase">Motor de Conteúdo</span>
         </div>
-        <h1 className="text-4xl font-display font-bold tracking-tight">
-          Content Engine <span className="text-gradient-gold">MASTER</span>
+        <h1 className="text-4xl font-bold tracking-tight">
+          Content Engine <span className="text-primary">MASTER</span>
         </h1>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
           Transforme uma ideia bruta em conteúdo estratégico completo para redes sociais.
