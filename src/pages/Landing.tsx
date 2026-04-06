@@ -81,7 +81,7 @@ const Landing = () => {
       {/* CTA */}
       <section className="py-20 px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-display font-bold mb-4">
+          <h2 className="text-3xl font-bold mb-4">
             Pronto para transformar seu conteúdo?
           </h2>
           <p className="text-muted-foreground mb-8">

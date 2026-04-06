@@ -46,7 +46,7 @@ const Index = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold font-display">Olá, {displayName} 👋</h1>
+            <h1 className="text-2xl font-bold">Olá, {displayName} 👋</h1>
             <p className="text-sm text-muted-foreground mt-1">O que vamos criar hoje?</p>
           </div>
           <div className="flex items-center gap-3">

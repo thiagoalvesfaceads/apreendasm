@@ -279,7 +279,7 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
       <Button
         type="submit"
         disabled={isGenerating || !idea.trim() || !niche.trim()}
-        className="w-full h-14 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-gold transition-all"
+        className="w-full h-14 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
       >
         {isGenerating ? (
           <span className="flex items-center gap-2">
