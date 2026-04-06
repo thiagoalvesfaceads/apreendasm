@@ -34,9 +34,9 @@ const Landing = () => {
       <section className="py-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h1 className="text-4xl md:text-5xl font-display font-bold mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
               Gere conteúdo profissional para suas
-              <span className="text-gradient-gold"> redes sociais</span> com IA
+              <span className="text-primary"> redes sociais</span> com IA
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               Carrosséis, reels, legendas e estratégia completa — tudo gerado automaticamente
