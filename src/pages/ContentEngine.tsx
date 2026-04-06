@@ -7,7 +7,8 @@ import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCir
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CreditBalance } from "@/components/CreditBalance";
-import { estimateCost } from "@/hooks/useCredits";
+import { estimateCost, CREDIT_COSTS } from "@/hooks/useCredits";
+import { AI_MODEL_INFO } from "@/types/content";
 import {
   Select,
   SelectContent,
