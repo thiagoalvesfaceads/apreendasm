@@ -13,7 +13,7 @@ const PrivacyPolicy = () => {
           Voltar
         </Link>
 
-        <h1 className="text-3xl font-display font-bold mb-2">Política de Privacidade</h1>
+        <h1 className="text-3xl font-bold mb-2">Política de Privacidade</h1>
         <p className="text-sm text-muted-foreground mb-8">
           Última atualização: {new Date().toLocaleDateString("pt-BR")}
         </p>

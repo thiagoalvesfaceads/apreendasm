@@ -90,7 +90,7 @@ const Library = () => {
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-display font-bold">Biblioteca</h1>
+          <h1 className="text-2xl font-bold">Biblioteca</h1>
           <Link to="/content-engine" className="text-sm text-primary hover:text-primary/80 transition-colors">
             ← Gerar novo
           </Link>

@@ -129,7 +129,7 @@ export function ResultsView({
 
       {/* Title */}
       <div>
-        <h2 className="text-2xl font-display font-bold">
+        <h2 className="text-2xl font-bold">
           {content.reels?.title || content.carousel?.title || "Conteúdo Gerado"}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">

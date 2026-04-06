@@ -18,7 +18,7 @@ const Landing = () => {
       {/* Header */}
       <header className="border-b border-border/50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <span className="font-display text-xl font-bold text-gradient-gold">Social Media AI</span>
+          <span className="text-xl font-bold text-primary">Social Media AI</span>
           <div className="flex items-center gap-3">
             <Link to="/auth">
               <Button variant="ghost" size="sm">Entrar</Button>
@@ -34,9 +34,9 @@ const Landing = () => {
       <section className="py-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <h1 className="text-4xl md:text-5xl font-display font-bold mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
               Gere conteúdo profissional para suas
-              <span className="text-gradient-gold"> redes sociais</span> com IA
+              <span className="text-primary"> redes sociais</span> com IA
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               Carrosséis, reels, legendas e estratégia completa — tudo gerado automaticamente
@@ -55,7 +55,7 @@ const Landing = () => {
       {/* Features */}
       <section className="py-16 px-4 bg-card/30">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-display font-bold text-center mb-12">
+          <h2 className="text-2xl font-bold text-center mb-12">
             Tudo que você precisa para criar conteúdo
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -81,7 +81,7 @@ const Landing = () => {
       {/* CTA */}
       <section className="py-20 px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-display font-bold mb-4">
+          <h2 className="text-3xl font-bold mb-4">
             Pronto para transformar seu conteúdo?
           </h2>
           <p className="text-muted-foreground mb-8">
