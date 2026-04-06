@@ -34,14 +34,11 @@ const VISUAL_STYLE_OPTIONS = [
   ["clean realista", "Clean Realista"], ["editorial premium", "Editorial Premium"], ["humano e cotidiano", "Humano e Cotidiano"], ["dramático cinematográfico", "Dramático Cinemático"], ["minimalista sofisticado", "Minimalista Sofisticado"], ["carrosseis thiago", "Carrosséis Thiago"],
 ] as const;
 
-const AI_MODEL_OPTIONS = [
-  ["gemini-flash-lite", "Gemini Flash Lite", "Grátis"],
-  ["gemini-flash", "Gemini Flash", "1 cr"],
-  ["gemini-pro", "Gemini Pro", "3 cr"],
-  ["gpt-4o-mini", "GPT-4o Mini", "2 cr"],
-  ["gpt-4o", "GPT-4o", "5 cr"],
-  ["claude-sonnet", "Claude Sonnet 4", "6 cr"],
-] as const;
+const AI_MODEL_OPTIONS = Object.entries(AI_MODEL_INFO).map(([key, info]) => {
+  const cost = CREDIT_COSTS["generate-content"][key as keyof typeof CREDIT_COSTS["generate-content"]];
+  const costLabel = cost === 0 ? "Grátis" : `${cost} créditos`;
+  return [key, info.label, costLabel] as const;
+});
 
 interface FormState {
   idea: string;
