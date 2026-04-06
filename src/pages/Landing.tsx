@@ -55,7 +55,7 @@ const Landing = () => {
       {/* Features */}
       <section className="py-16 px-4 bg-card/30">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-display font-bold text-center mb-12">
+          <h2 className="text-2xl font-bold text-center mb-12">
             Tudo que você precisa para criar conteúdo
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
