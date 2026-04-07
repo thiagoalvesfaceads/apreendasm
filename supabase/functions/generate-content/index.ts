@@ -316,8 +316,20 @@ serve(async (req) => {
       });
     }
     const creditCost = modelConfig.cost;
+
+    // Check if user is admin (admins have unlimited credits)
+    let isAdmin = false;
+    if (userId) {
+      const { data: roleData } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      isAdmin = !!roleData;
+    }
     
-    if (creditCost > 0 && userId) {
+    if (creditCost > 0 && userId && !isAdmin) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
         p_user_id: userId,
         p_amount: creditCost,

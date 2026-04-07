@@ -177,7 +177,19 @@ serve(async (req) => {
     ).auth.getUser(token);
     const userId = authUser?.id;
 
-    if (totalCost > 0 && userId) {
+    // Check if user is admin (admins have unlimited credits)
+    let isAdmin = false;
+    if (userId) {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      isAdmin = !!roleData;
+    }
+
+    if (totalCost > 0 && userId && !isAdmin) {
       const { error: debitError } = await supabase.rpc("debit_credits", {
         p_user_id: userId,
         p_amount: totalCost,
