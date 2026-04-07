@@ -1,4 +1,4 @@
-import { Coins, Infinity } from "lucide-react";
+import { Coins } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
