@@ -504,7 +504,7 @@ export default function ContentEngine() {
                 </div>
 
                 {/* Cost estimation */}
-                {(() => {
+                {!isAdmin && (() => {
                   const cost = estimateCost(
                     form.aiModel,
                     form.generateImages && form.format === "carrossel",
