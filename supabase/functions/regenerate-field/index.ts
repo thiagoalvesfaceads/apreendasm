@@ -273,8 +273,20 @@ serve(async (req) => {
     const { field, action, slide, strategy, tone, niche, ai_model = "gemini-flash-lite" } = await req.json();
 
     const creditCost = 3; // flat cost for regeneration
+
+    // Check if user is admin (admins have unlimited credits)
+    let isAdmin = false;
+    if (userId) {
+      const { data: roleData } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      isAdmin = !!roleData;
+    }
     
-    if (creditCost > 0 && userId) {
+    if (creditCost > 0 && userId && !isAdmin) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
         p_user_id: userId,
         p_amount: creditCost,
