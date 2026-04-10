@@ -167,7 +167,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // --- Credit check ---
-    const COST_PER_IMAGE = 36;
+    const COST_PER_IMAGE = 80;
     const totalCost = prompts.length * COST_PER_IMAGE;
     
     const authHeader = req.headers.get("authorization") ?? "";

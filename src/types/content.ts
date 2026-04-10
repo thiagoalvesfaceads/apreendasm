@@ -17,11 +17,11 @@ export interface AIModelInfo {
 
 export const AI_MODEL_INFO: Record<AIModel, AIModelInfo> = {
   "gemini-flash-lite": { label: "Gemini 2.5 Flash Lite", provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
-  "gemini-flash": { label: "Gemini 2.5 Flash", provider: "google", apiModel: "gemini-2.5-flash", cost: 1 },
-  "gemini-pro": { label: "Gemini 2.5 Pro", provider: "google", apiModel: "gemini-2.5-pro", cost: 3 },
-  "gpt-4o-mini": { label: "GPT-4o Mini", provider: "openai", apiModel: "gpt-4o-mini", cost: 2 },
-  "gpt-4o": { label: "GPT-4o", provider: "openai", apiModel: "gpt-4o", cost: 5 },
-  "claude-sonnet": { label: "Claude Sonnet 4", provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 6 },
+  "gemini-flash": { label: "Gemini 2.5 Flash", provider: "google", apiModel: "gemini-2.5-flash", cost: 20 },
+  "gemini-pro": { label: "Gemini 2.5 Pro", provider: "google", apiModel: "gemini-2.5-pro", cost: 60 },
+  "gpt-4o-mini": { label: "GPT-4o Mini", provider: "openai", apiModel: "gpt-4o-mini", cost: 15 },
+  "gpt-4o": { label: "GPT-4o", provider: "openai", apiModel: "gpt-4o", cost: 70 },
+  "claude-sonnet": { label: "Claude Sonnet 4", provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 90 },
 };
 
 export interface ContentInput {
@@ -138,9 +138,9 @@ export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
 
 export const AI_MODEL_LABELS: Record<AIModel, string> = {
   "gemini-flash-lite": "Gemini Flash Lite — Grátis",
-  "gemini-flash": "Gemini Flash — 5 créditos",
-  "gemini-pro": "Gemini Pro — 30 créditos",
-  "gpt-4o-mini": "GPT-4o Mini — 10 créditos",
-  "gpt-4o": "GPT-4o — 40 créditos",
-  "claude-sonnet": "Claude Sonnet 4 — 50 créditos",
+  "gemini-flash": "Gemini Flash — 20 créditos",
+  "gemini-pro": "Gemini Pro — 60 créditos",
+  "gpt-4o-mini": "GPT-4o Mini — 15 créditos",
+  "gpt-4o": "GPT-4o — 70 créditos",
+  "claude-sonnet": "Claude Sonnet 4 — 90 créditos",
 };

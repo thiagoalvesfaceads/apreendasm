@@ -516,7 +516,7 @@ export default function ContentEngine() {
                       <span className="text-foreground/80">
                         Esta geração vai custar <strong className="text-primary">{cost} créditos</strong>
                         {form.generateImages && form.format === "carrossel" && (
-                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiModel, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 36})</span>
+                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiModel, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 80})</span>
                         )}
                       </span>
                     </div>
@@ -526,7 +526,7 @@ export default function ContentEngine() {
                       <span className="text-foreground/80">
                         Geração de texto <strong className="text-emerald-500">gratuita</strong> com Google Gemini
                         {form.generateImages && form.format === "carrossel" && (
-                          <span className="text-muted-foreground"> + imagens: <strong className="text-primary">{(parseInt(form.cards) || 7) * 36} créditos</strong></span>
+                          <span className="text-muted-foreground"> + imagens: <strong className="text-primary">{(parseInt(form.cards) || 7) * 80} créditos</strong></span>
                         )}
                       </span>
                     </div>
