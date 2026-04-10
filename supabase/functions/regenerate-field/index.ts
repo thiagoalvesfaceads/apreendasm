@@ -272,7 +272,7 @@ serve(async (req) => {
 
     const { field, action, slide, strategy, tone, niche, ai_model = "gemini-flash-lite" } = await req.json();
 
-    const creditCost = 3; // flat cost for regeneration
+    const creditCost = 8; // flat cost for regeneration
 
     // Check if user is admin (admins have unlimited credits)
     let isAdmin = false;
