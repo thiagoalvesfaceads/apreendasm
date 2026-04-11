@@ -329,6 +329,21 @@ export default function Pricing() {
             })}
           </div>
         )}
+
+        {/* Trust bar */}
+        <div className="flex flex-wrap justify-center gap-6 md:gap-10 py-6 border-t border-border/40">
+          {[
+            { icon: Lock, label: "Pagamento seguro" },
+            { icon: Zap, label: "Créditos instantâneos" },
+            { icon: CalendarOff, label: "Sem assinatura" },
+            { icon: Mail, label: "Suporte por e-mail" },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <Icon className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[12px] text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Payment Modal */}
