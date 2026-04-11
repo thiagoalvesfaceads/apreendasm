@@ -243,7 +243,11 @@ export default function ContentEngine() {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro ao gerar conteúdo.";
-      setError(msg); toast.error(msg);
+      setError(msg);
+      const isCreditsError = msg.includes("Créditos") || msg.includes("créditos");
+      toast.error(msg, isCreditsError ? {
+        action: { label: "Recarregar", onClick: () => navigate("/pricing") },
+      } : undefined);
     } finally { setLoading(false); }
   };
 

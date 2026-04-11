@@ -11,7 +11,7 @@ export function CreditBalance() {
 
   return (
     <Link
-      to="/usage"
+      to="/pricing"
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary hover:bg-primary/15 transition-colors"
     >
       <Coins className="w-3.5 h-3.5" />
