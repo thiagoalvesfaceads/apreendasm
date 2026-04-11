@@ -14,6 +14,7 @@ import ContentEngine from "./pages/ContentEngine.tsx";
 import CanvaCallback from "./pages/CanvaCallback.tsx";
 import CardGenerator from "./pages/CardGenerator.tsx";
 import Usage from "./pages/Usage.tsx";
+import Pricing from "./pages/Pricing.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route
             path="/app"
             element={
