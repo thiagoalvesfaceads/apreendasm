@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_packages: {
+        Row: {
+          created_at: string
+          credits: number
+          description: string
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          credits: number
+          description?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents: number
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          description?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+        }
+        Relationships: []
+      }
       generations: {
         Row: {
           content: Json
@@ -134,18 +164,21 @@ export type Database = {
           id: string
           updated_at: string | null
           user_id: string
+          welcome_credits_granted: boolean
         }
         Insert: {
           balance?: number
           id?: string
           updated_at?: string | null
           user_id: string
+          welcome_credits_granted?: boolean
         }
         Update: {
           balance?: number
           id?: string
           updated_at?: string | null
           user_id?: string
+          welcome_credits_granted?: boolean
         }
         Relationships: []
       }
