@@ -1,5 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import { Sparkles, LayoutGrid, Film, Type, BarChart3, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +15,14 @@ const features = [
 ];
 
 const Landing = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/app", { replace: true });
+    }
+  }, [user, loading, navigate]);
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
