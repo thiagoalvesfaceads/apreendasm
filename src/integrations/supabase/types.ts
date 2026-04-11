@@ -104,6 +104,47 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          asaas_customer_id: string | null
+          asaas_payment_id: string | null
+          created_at: string
+          id: string
+          package_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          created_at?: string
+          id?: string
+          package_id: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          created_at?: string
+          id?: string
+          package_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved: boolean
