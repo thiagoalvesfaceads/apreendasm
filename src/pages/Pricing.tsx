@@ -469,7 +469,6 @@ export default function Pricing() {
                 </div>
                 <span className="text-[11px] text-muted-foreground">Pagamento processado por Asaas</span>
               </div>
-              </Button>
             </div>
           )}
 
