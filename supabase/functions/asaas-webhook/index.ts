@@ -51,6 +51,7 @@ Deno.serve(async (req) => {
 
     const priceCents = Math.round(valueReais * 100);
 
+    // Find matching package
     const { data: pkg, error: pkgError } = await supabase
       .from("credit_packages")
       .select("*")
@@ -65,40 +66,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { error: creditError } = await supabase
+    // Get current balance
+    const { data: userCredits } = await supabase
       .from("user_credits")
-      .update({ balance: supabase.rpc ? undefined : undefined })
-      .eq("user_id", userId);
+      .select("balance")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    // Use raw SQL via rpc to atomically increment balance
-    const { error: rpcError } = await supabase.rpc("debit_credits", {
-      p_user_id: userId,
-      p_amount: -pkg.credits, // negative amount = credit
-    }).then(() => ({ error: null })).catch(() => {
-      // debit_credits doesn't support negative, do manual update
-      return { error: "fallback" as any };
-    });
-
-    // Fallback: direct update with increment
-    if (rpcError) {
-      const { data: current } = await supabase
+    if (userCredits) {
+      // Increment existing balance
+      await supabase
         .from("user_credits")
-        .select("balance")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (!current) {
-        // User has no credits row yet, insert one
-        await supabase.from("user_credits").insert({
-          user_id: userId,
-          balance: pkg.credits,
-        });
-      } else {
-        await supabase
-          .from("user_credits")
-          .update({ balance: current.balance + pkg.credits, updated_at: new Date().toISOString() })
-          .eq("user_id", userId);
-      }
+        .update({
+          balance: userCredits.balance + pkg.credits,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId);
+    } else {
+      // Create credits row
+      await supabase.from("user_credits").insert({
+        user_id: userId,
+        balance: pkg.credits,
+      });
     }
 
     // Log the purchase
