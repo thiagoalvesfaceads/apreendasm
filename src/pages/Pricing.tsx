@@ -448,7 +448,7 @@ export default function Pricing() {
           {/* Step: Confirmed */}
           {step === "confirmed" && (
             <div className="flex flex-col items-center gap-3 py-6">
-              <Check className="w-12 h-12 text-green-500" />
+              <Check className="w-12 h-12 text-primary" />
               <p className="font-semibold text-lg">Créditos adicionados!</p>
             </div>
           )}
