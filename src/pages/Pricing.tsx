@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Coins, ArrowLeft, Sparkles, Gift, Copy, Check, Loader2, CreditCard } from "lucide-react";
+import { Coins, ArrowLeft, Sparkles, Gift, Copy, Check, Loader2, CreditCard, Lock, Zap, CalendarOff, Mail } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface CreditPackage {
