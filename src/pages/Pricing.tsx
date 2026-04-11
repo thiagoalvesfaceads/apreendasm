@@ -518,6 +518,8 @@ export default function Pricing() {
               <p className="text-[11px] text-muted-foreground text-center">
                 Processado por Asaas • Regulado pelo Banco Central do Brasil
               </p>
+            </div>
+          )}
 
           {/* Step: Confirmed */}
           {step === "confirmed" && (
