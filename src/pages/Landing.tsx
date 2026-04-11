@@ -1,5 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import { Sparkles, LayoutGrid, Film, Type, BarChart3, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
