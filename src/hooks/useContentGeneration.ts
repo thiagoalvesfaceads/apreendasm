@@ -79,6 +79,9 @@ export function useContentGeneration() {
         if (data.error === "PAYMENT_REQUIRED" || data.error === "INSUFFICIENT_CREDITS") {
           throw new Error("Créditos insuficientes. Recarregue seus créditos para continuar.");
         }
+        if (data.error === "WELCOME_CREDITS_RESTRICTED") {
+          throw new Error(data.message || "Créditos de boas-vindas só podem ser usados para geração de texto com Gemini ou OpenAI.");
+        }
         throw new Error(data.error);
       }
 
