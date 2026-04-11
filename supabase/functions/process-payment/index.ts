@@ -18,7 +18,6 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Validate JWT
   const authHeader = req.headers.get("authorization");
   if (!authHeader) {
     return new Response(JSON.stringify({ error: "Não autenticado" }), {
@@ -40,9 +39,26 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { package_id } = await req.json();
+    const { package_id, cpf_cnpj, billing_type, credit_card, card_holder_info } = await req.json();
+
     if (!package_id) {
       return new Response(JSON.stringify({ error: "package_id obrigatório" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!cpf_cnpj) {
+      return new Response(JSON.stringify({ error: "CPF/CNPJ obrigatório" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const billingType = billing_type === "CREDIT_CARD" ? "CREDIT_CARD" : "PIX";
+
+    if (billingType === "CREDIT_CARD" && (!credit_card || !card_holder_info)) {
+      return new Response(JSON.stringify({ error: "Dados do cartão obrigatórios" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -63,7 +79,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get user email from profiles
     const { data: profile } = await supabase
       .from("profiles")
       .select("email, full_name")
@@ -89,9 +104,11 @@ Deno.serve(async (req) => {
       access_token: asaasKey,
     };
 
-    // Find or create customer
+    // Find or create customer (now with cpfCnpj)
+    const cleanCpfCnpj = cpf_cnpj.replace(/\D/g, "");
+
     const searchRes = await fetch(
-      `${ASAAS_BASE}/customers?email=${encodeURIComponent(email!)}`,
+      `${ASAAS_BASE}/customers?cpfCnpj=${cleanCpfCnpj}`,
       { headers: asaasHeaders }
     );
     const searchData = await searchRes.json();
@@ -107,6 +124,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           name,
           email,
+          cpfCnpj: cleanCpfCnpj,
           notificationDisabled: true,
         }),
       });
@@ -124,22 +142,42 @@ Deno.serve(async (req) => {
       customerId = createData.id;
     }
 
-    // Create PIX payment
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 1);
     const dueDateStr = dueDate.toISOString().split("T")[0];
 
+    const paymentBody: Record<string, unknown> = {
+      customer: customerId,
+      billingType,
+      value: pkg.price_cents / 100,
+      dueDate: dueDateStr,
+      description: `Content Engine — ${pkg.name} (${pkg.credits} créditos)`,
+      externalReference: user.id,
+    };
+
+    // For credit card, include card data directly in payment creation
+    if (billingType === "CREDIT_CARD") {
+      paymentBody.creditCard = {
+        holderName: credit_card.holder_name,
+        number: credit_card.number.replace(/\s/g, ""),
+        expiryMonth: credit_card.expiry_month,
+        expiryYear: credit_card.expiry_year,
+        ccv: credit_card.ccv,
+      };
+      paymentBody.creditCardHolderInfo = {
+        name: card_holder_info.name,
+        email,
+        cpfCnpj: cleanCpfCnpj,
+        postalCode: card_holder_info.postal_code?.replace(/\D/g, "") || "00000000",
+        addressNumber: card_holder_info.address_number || "0",
+        phone: card_holder_info.phone?.replace(/\D/g, "") || "",
+      };
+    }
+
     const paymentRes = await fetch(`${ASAAS_BASE}/payments`, {
       method: "POST",
       headers: asaasHeaders,
-      body: JSON.stringify({
-        customer: customerId,
-        billingType: "PIX",
-        value: pkg.price_cents / 100,
-        dueDate: dueDateStr,
-        description: `Content Engine — ${pkg.name} (${pkg.credits} créditos)`,
-        externalReference: user.id,
-      }),
+      body: JSON.stringify(paymentBody),
     });
     const paymentData = await paymentRes.json();
 
@@ -154,25 +192,55 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get PIX QR code
+    // Save payment record
+    await supabase.from("payments").insert({
+      user_id: user.id,
+      package_id: pkg.id,
+      asaas_payment_id: paymentData.id,
+      asaas_customer_id: customerId,
+      status: paymentData.status === "CONFIRMED" || paymentData.status === "RECEIVED" ? "confirmed" : "pending",
+    });
+
+    // If credit card payment was confirmed immediately, credit the user
+    if (paymentData.status === "CONFIRMED" || paymentData.status === "RECEIVED") {
+      await supabase.rpc("debit_credits", { p_user_id: user.id, p_amount: -pkg.credits });
+      // Actually we need to ADD credits. debit_credits subtracts. Let's update balance directly.
+      const { data: currentCredits } = await supabase
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", user.id)
+        .single();
+
+      if (currentCredits) {
+        await supabase
+          .from("user_credits")
+          .update({ balance: currentCredits.balance + pkg.credits, updated_at: new Date().toISOString() })
+          .eq("user_id", user.id);
+      }
+
+      return new Response(
+        JSON.stringify({
+          paymentId: paymentData.id,
+          billingType: "CREDIT_CARD",
+          status: "confirmed",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // PIX flow: get QR code
     const qrRes = await fetch(
       `${ASAAS_BASE}/payments/${paymentData.id}/pixQrCode`,
       { headers: asaasHeaders }
     );
     const qrData = await qrRes.json();
 
-    // Save payment record (service role bypasses RLS)
-    await supabase.from("payments").insert({
-      user_id: user.id,
-      package_id: pkg.id,
-      asaas_payment_id: paymentData.id,
-      asaas_customer_id: customerId,
-      status: "pending",
-    });
-
     return new Response(
       JSON.stringify({
         paymentId: paymentData.id,
+        billingType: "PIX",
         pixQrCodeBase64: qrData.encodedImage ?? null,
         pixCopyPaste: qrData.payload ?? null,
         expirationDate: paymentData.dueDate,
