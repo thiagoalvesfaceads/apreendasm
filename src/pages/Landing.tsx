@@ -42,12 +42,19 @@ const Landing = () => {
               Carrosséis, reels, legendas e estratégia completa — tudo gerado automaticamente
               a partir do seu nicho, público e objetivos.
             </p>
-            <Link to="/auth?tab=signup">
-              <Button size="lg" className="text-base px-8">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Começar agora — é grátis
-              </Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Link to="/auth?tab=signup">
+                <Button size="lg" className="text-base px-8">
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Começar agora — é grátis
+                </Button>
+              </Link>
+              <Link to="/pricing">
+                <Button size="lg" variant="outline" className="text-base px-8">
+                  Ver pacotes
+                </Button>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>
