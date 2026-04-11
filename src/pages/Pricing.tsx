@@ -165,7 +165,7 @@ export default function Pricing() {
               <Link to="/auth?tab=signup" className="font-semibold text-primary hover:underline">
                 Cadastre-se grátis
               </Link>{" "}
-              e ganhe <strong>100 créditos</strong> para testar.
+              e ganhe <strong>50 créditos</strong> para testar geração de texto com Gemini e OpenAI.
             </p>
           </div>
         )}

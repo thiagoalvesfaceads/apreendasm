@@ -233,6 +233,7 @@ export default function ContentEngine() {
         if (data.error === "RATE_LIMITED") throw new Error("Limite de requisições atingido. Aguarde e tente novamente.");
         if (data.error === "PAYMENT_REQUIRED") throw new Error("Créditos de IA esgotados.");
         if (data.error === "INSUFFICIENT_CREDITS") throw new Error("Créditos insuficientes. Recarregue seu saldo.");
+        if (data.error === "WELCOME_CREDITS_RESTRICTED") throw new Error(data.message || "Créditos de boas-vindas só podem ser usados para geração de texto com Gemini ou OpenAI.");
         throw new Error(data.error);
       }
       setResult(data); setActiveTab("estrategia");
