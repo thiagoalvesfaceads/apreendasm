@@ -214,6 +214,26 @@ export default function Pricing() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleRetryQr = async () => {
+    if (!pixData?.paymentId) return;
+    setModalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pix-qr-code", {
+        body: { payment_id: pixData.paymentId },
+      });
+      if (error) throw error;
+      if (data.pixQrCodeBase64 || data.pixCopyPaste) {
+        setPixData((prev) => prev ? { ...prev, pixQrCodeBase64: data.pixQrCodeBase64, pixCopyPaste: data.pixCopyPaste } : prev);
+      } else {
+        toast({ title: "QR Code ainda não disponível", description: "Tente novamente em alguns segundos.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar QR Code", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   const handleCloseModal = () => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = null;
@@ -416,14 +436,21 @@ export default function Pricing() {
           {/* Step: PIX */}
           {step === "pix" && pixData && (
             <div className="flex flex-col items-center gap-4">
-              {pixData.pixQrCodeBase64 && (
+              {pixData.pixQrCodeBase64 ? (
                 <img
                   src={`data:image/png;base64,${pixData.pixQrCodeBase64}`}
                   alt="QR Code PIX"
                   className="w-56 h-56 rounded-lg border"
                 />
+              ) : (
+                <div className="w-56 h-56 rounded-lg border flex flex-col items-center justify-center gap-3 bg-muted/30">
+                  <p className="text-sm text-muted-foreground text-center px-4">QR Code ainda sendo gerado...</p>
+                  <Button size="sm" variant="outline" disabled={modalLoading} onClick={handleRetryQr}>
+                    {modalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Gerar QR Code"}
+                  </Button>
+                </div>
               )}
-              {pixData.pixCopyPaste && (
+              {pixData.pixCopyPaste ? (
                 <div className="w-full space-y-2">
                   <p className="text-xs text-muted-foreground text-center">Ou copie o código:</p>
                   <div className="flex gap-2">
@@ -437,6 +464,8 @@ export default function Pricing() {
                     </Button>
                   </div>
                 </div>
+              ) : !pixData.pixQrCodeBase64 ? null : (
+                <p className="text-xs text-muted-foreground">Código copia-e-cola indisponível</p>
               )}
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="w-3 h-3 animate-spin" />
