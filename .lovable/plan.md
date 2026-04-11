@@ -1,29 +1,50 @@
 
 
-## Plano: Criar página /pricing com pacotes de créditos
+## Plano: Criar edge function `asaas-webhook` para processar pagamentos
 
 ### Resumo
-Criar uma nova página `Pricing.tsx` que busca pacotes da tabela `credit_packages` e exibe em cards. Adicionar rota no `App.tsx` (pública, sem `ProtectedRoute`).
+Criar uma edge function que recebe webhooks do Asaas (PAYMENT_CONFIRMED / PAYMENT_RECEIVED), valida o token, identifica o usuário e credita o saldo correspondente ao pacote comprado.
 
-### Arquivos a criar/alterar
+### Pré-requisito: Secret do Asaas
+Antes de implementar, preciso configurar o token de webhook do Asaas como secret:
+- `ASAAS_WEBHOOK_TOKEN` — token de validação que o Asaas gera ao cadastrar o webhook
 
-**1. Criar `src/pages/Pricing.tsx`**
-- Busca pacotes ativos via `supabase.from("credit_packages").select("*").eq("is_active", true).order("credits")`
-- Usa `useAuth` para detectar login → mostra saldo atual (logado) ou banner de boas-vindas (não logado)
-- Grid responsivo com 4 cards (`grid-cols-1 md:grid-cols-2 lg:grid-cols-4`)
-- Card "Criador" destacado com badge "Mais popular" e borda `border-primary`
-- Cada card: nome, preço formatado (`(price_cents / 100).toFixed(2)` com vírgula), créditos em destaque, descrição, equivalências calculadas (`credits / 20` gerações Flash, `Math.floor(credits / 650)` carrosséis completos), botão "Em breve" desabilitado
-- Header com nav links consistente com Usage page (link Home, voltar)
-- Estilo escuro consistente com o app
+### Arquivo a criar
 
-**2. Alterar `src/App.tsx`**
-- Importar `Pricing` e adicionar rota pública `<Route path="/pricing" element={<Pricing />} />`
+**`supabase/functions/asaas-webhook/index.ts`**
 
-**3. Alterar `src/pages/Landing.tsx`**
-- Adicionar link "Ver pacotes" apontando para `/pricing` na landing page
+Lógica:
+1. CORS headers + OPTIONS handler
+2. Valida header `asaas-access-token` contra `ASAAS_WEBHOOK_TOKEN`
+3. Aceita apenas eventos `PAYMENT_CONFIRMED` e `PAYMENT_RECEIVED`
+4. Extrai do payload: `payment.externalReference` (será o `user_id`), `payment.value` (valor em reais)
+5. Busca o pacote correspondente na tabela `credit_packages` pelo `price_cents` (converte `value * 100`)
+6. Se encontrar o pacote:
+   - Incrementa `balance` na `user_credits` do usuário
+   - Registra na `usage_log` com `function_name: 'asaas-purchase'`, `ai_model: 'system'`, `credits_used: 0`, metadata com detalhes do pagamento
+7. Retorna 200 OK (Asaas espera 200 para confirmar recebimento)
+8. Se não encontrar pacote ou usuário, loga erro e retorna 200 mesmo (para não causar retry infinito)
 
-### O que NÃO muda
-- Nenhuma tabela ou migration
-- Nenhuma edge function
-- Nenhum gateway de pagamento
+### Fluxo esperado
+```text
+Asaas → POST /asaas-webhook
+  ├─ Valida token
+  ├─ Evento = PAYMENT_CONFIRMED?
+  │   ├─ Busca user_id via externalReference
+  │   ├─ Busca pacote via valor
+  │   ├─ Credita saldo (UPDATE user_credits SET balance = balance + credits)
+  │   └─ Registra usage_log
+  └─ Retorna 200
+```
+
+### Migration necessária
+Nenhuma — a `user_credits` já tem a coluna `balance` e a `usage_log` aceita inserts via service role.
+
+### Observação sobre externalReference
+Ao criar a cobrança no Asaas (futuro), o `externalReference` deve conter o `user_id` do Supabase para que o webhook consiga identificar quem pagou. Isso será implementado quando criarmos a edge function de criar cobrança.
+
+### Passos de execução
+1. Solicitar que o usuário adicione o secret `ASAAS_WEBHOOK_TOKEN`
+2. Criar a edge function
+3. Deploy e testar com curl
 
