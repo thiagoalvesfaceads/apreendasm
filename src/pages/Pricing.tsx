@@ -214,6 +214,26 @@ export default function Pricing() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleRetryQr = async () => {
+    if (!pixData?.paymentId) return;
+    setModalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pix-qr-code", {
+        body: { payment_id: pixData.paymentId },
+      });
+      if (error) throw error;
+      if (data.pixQrCodeBase64 || data.pixCopyPaste) {
+        setPixData((prev) => prev ? { ...prev, pixQrCodeBase64: data.pixQrCodeBase64, pixCopyPaste: data.pixCopyPaste } : prev);
+      } else {
+        toast({ title: "QR Code ainda não disponível", description: "Tente novamente em alguns segundos.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar QR Code", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   const handleCloseModal = () => {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = null;
