@@ -104,7 +104,10 @@ export function useContentGeneration() {
     } catch (e) {
       const message = e instanceof Error ? e.message : "Erro ao gerar conteúdo";
       setError(message);
-      toast.error(message);
+      const isCreditsError = message.includes("Créditos") || message.includes("créditos");
+      toast.error(message, isCreditsError ? {
+        action: { label: "Recarregar", onClick: () => { window.location.href = "/pricing"; } },
+      } : undefined);
     } finally {
       setIsGenerating(false);
     }
