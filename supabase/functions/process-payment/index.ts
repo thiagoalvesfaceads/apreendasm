@@ -230,12 +230,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    // PIX flow: get QR code
-    const qrRes = await fetch(
-      `${ASAAS_BASE}/payments/${paymentData.id}/pixQrCode`,
-      { headers: asaasHeaders }
-    );
-    const qrData = await qrRes.json();
+    // PIX flow: get QR code with retry (Asaas needs time to generate)
+    let qrData: Record<string, unknown> = {};
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const qrRes = await fetch(
+        `${ASAAS_BASE}/payments/${paymentData.id}/pixQrCode`,
+        { headers: asaasHeaders }
+      );
+      qrData = await qrRes.json();
+      console.log(`PIX QR attempt ${attempt}:`, JSON.stringify(qrData));
+      if (qrData.encodedImage && qrData.payload) break;
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 2000));
+    }
 
     return new Response(
       JSON.stringify({
