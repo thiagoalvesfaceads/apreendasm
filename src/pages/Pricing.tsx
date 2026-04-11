@@ -363,6 +363,12 @@ export default function Pricing() {
                 : ""}
             </DialogDescription>
           </DialogHeader>
+          {step !== "confirmed" && (
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-4 h-4 text-emerald-500" />
+              <span className="text-[12px] text-emerald-500">Transação segura e criptografada</span>
+            </div>
+          )}
 
           {/* Step: Form */}
           {step === "form" && (
@@ -434,6 +440,10 @@ export default function Pricing() {
                 </div>
               )}
 
+              <p className="text-[12px] text-muted-foreground text-center">
+                Seus créditos são adicionados automaticamente após confirmação.
+              </p>
+
               <Button className="w-full" onClick={handleSubmitPayment} disabled={modalLoading}>
                 {modalLoading ? (
                   <>
@@ -444,6 +454,21 @@ export default function Pricing() {
                 ) : (
                   "Pagar com cartão"
                 )}
+              </Button>
+
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <div className="flex items-center gap-3">
+                  {/* Visa */}
+                  <svg viewBox="0 0 48 32" className="h-5 w-auto" fill="none"><rect width="48" height="32" rx="4" fill="#1A1F71"/><path d="M19.5 21H17l1.6-10h2.5L19.5 21zm8.1-10l-2.3 6.8L24.8 15c-.2-1-.8-1.3-1.5-1.3l-3.5.01-.03.2c1.2.3 2.3.8 3 1.4l2.5 5.7h2.4l3.6-10h-2.6zm6.4 0h-2c-.6 0-1.1.2-1.3.8L27 21h2.5l.5-1.4h3l.3 1.4H36l-2-10zm-1.6 6.5l1.2-3.5.7 3.5h-1.9zM16.5 11l-2.4 6.8-.3-1.3c-.5-1.7-2-3.5-3.8-4.4l2.2 8.9h2.5l3.8-10h-2z" fill="#fff"/><path d="M12.5 11H8.8l-.04.2C13 12 15.4 14 16.3 16.4L15.3 12c-.2-.7-.7-.9-1.3-1H12.5z" fill="#F7A600"/></svg>
+                  {/* Mastercard */}
+                  <svg viewBox="0 0 48 32" className="h-5 w-auto" fill="none"><rect width="48" height="32" rx="4" fill="#252525"/><circle cx="19" cy="16" r="8" fill="#EB001B"/><circle cx="29" cy="16" r="8" fill="#F79E1B"/><path d="M24 10.3a8 8 0 0 1 0 11.4 8 8 0 0 1 0-11.4z" fill="#FF5F00"/></svg>
+                  {/* Elo */}
+                  <svg viewBox="0 0 48 32" className="h-5 w-auto" fill="none"><rect width="48" height="32" rx="4" fill="#000"/><text x="24" y="20" textAnchor="middle" fill="#00A4E0" fontSize="12" fontWeight="bold" fontFamily="sans-serif">elo</text></svg>
+                  {/* Pix */}
+                  <svg viewBox="0 0 48 32" className="h-5 w-auto" fill="none"><rect width="48" height="32" rx="4" fill="#F5F5F5"/><path d="M28.5 11.3l-3.2 3.2a1.8 1.8 0 0 1-2.6 0l-3.2-3.2a1.3 1.3 0 0 0-1.8 0L14 14.9l1.8 1.8 3.2-3.2a1.8 1.8 0 0 1 2.6 0l3.2 3.2a1.3 1.3 0 0 0 1.8 0L30.3 13l-1.8-1.8z" fill="#32BCAD"/><path d="M28.5 20.7l-3.2-3.2a1.8 1.8 0 0 0-2.6 0l-3.2 3.2a1.3 1.3 0 0 1-1.8 0L14 17.1l1.8-1.8 3.2 3.2a1.8 1.8 0 0 0 2.6 0l3.2-3.2a1.3 1.3 0 0 1 1.8 0L30.3 19l-1.8 1.8z" fill="#32BCAD"/></svg>
+                </div>
+                <span className="text-[11px] text-muted-foreground">Pagamento processado por Asaas</span>
+              </div>
               </Button>
             </div>
           )}
@@ -486,8 +511,13 @@ export default function Pricing() {
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Aguardando confirmação do pagamento...
               </div>
-            </div>
-          )}
+              <div className="flex items-center gap-1.5 justify-center">
+                <Lock className="w-4 h-4 text-emerald-500" />
+                <span className="text-[12px] text-emerald-500">Pagamento via Pix — instantâneo e seguro</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Processado por Asaas • Regulado pelo Banco Central do Brasil
+              </p>
 
           {/* Step: Confirmed */}
           {step === "confirmed" && (
