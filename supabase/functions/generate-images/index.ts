@@ -189,6 +189,22 @@ serve(async (req) => {
       isAdmin = !!roleData;
     }
 
+    // Block image generation for welcome-only users (no purchases)
+    if (userId && !isAdmin) {
+      const { data: purchaseData } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("status", "confirmed")
+        .limit(1);
+      if (!purchaseData || purchaseData.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "WELCOME_CREDITS_RESTRICTED", message: "Créditos de boas-vindas não podem ser usados para gerar imagens. Adquira um pacote para desbloquear." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     if (totalCost > 0 && userId && !isAdmin) {
       const { error: debitError } = await supabase.rpc("debit_credits", {
         p_user_id: userId,
