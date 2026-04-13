@@ -457,7 +457,7 @@ ${slidesContext}
 
 Para o ÚLTIMO slide (CTA), retorne visual_prompt como "none".
 Mantenha coerência visual entre todos os slides — mesma paleta, sujeito, ambiente.
-Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.`;
+Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.${tone === "card" ? "\n\nIMPORTANTE — TOM CARD: NÃO inclua pessoas, rostos ou figuras humanas nos prompts visuais. Use objetos, metáforas visuais, cenários, texturas, padrões e elementos abstratos ou simbólicos." : ""}`;
 
       const visualPromptRequest = isThiagoStyle
         ? visualBaseRequest + `
