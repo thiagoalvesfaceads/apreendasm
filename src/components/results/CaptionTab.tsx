@@ -1,4 +1,5 @@
 import { Copy, Check } from "lucide-react";
+import { renderMarkdownBold } from "@/lib/formatText";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -31,10 +32,10 @@ export function CaptionTab({ caption, cta }: CaptionTabProps) {
             {copied ? "Copiado" : "Copiar legenda"}
           </button>
         </div>
-        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{caption}</p>
+        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{renderMarkdownBold(caption)}</p>
         <div className="pt-3 border-t border-border/50">
           <span className="text-xs font-medium text-primary uppercase tracking-wider">CTA</span>
-          <p className="text-sm text-foreground/80 mt-2">{cta}</p>
+          <p className="text-sm text-foreground/80 mt-2">{renderMarkdownBold(cta)}</p>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { renderMarkdownBold } from "@/lib/formatText";
 import { ReelsContent } from "@/types/content";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
@@ -32,7 +33,7 @@ export function ReelsTab({ reels }: ReelsTabProps) {
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-primary uppercase tracking-wider">Hook</span>
         </div>
-        <p className="text-foreground font-medium text-lg leading-snug">{reels.hook}</p>
+        <p className="text-foreground font-medium text-lg leading-snug">{renderMarkdownBold(reels.hook)}</p>
       </motion.div>
 
       {/* Script */}
@@ -41,7 +42,7 @@ export function ReelsTab({ reels }: ReelsTabProps) {
           <span className="text-xs font-medium text-primary uppercase tracking-wider">Roteiro Completo</span>
           <CopyButton text={reels.script} label="roteiro" />
         </div>
-        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{reels.script}</p>
+        <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{renderMarkdownBold(reels.script)}</p>
       </motion.div>
 
       {/* On-screen text */}
@@ -74,7 +75,7 @@ export function ReelsTab({ reels }: ReelsTabProps) {
       {/* Editing Notes */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card-premium p-5 space-y-2">
         <span className="text-xs font-medium text-primary uppercase tracking-wider">Notas de Edição</span>
-        <p className="text-sm text-foreground/70 leading-relaxed">{reels.editing_notes}</p>
+        <p className="text-sm text-foreground/70 leading-relaxed">{renderMarkdownBold(reels.editing_notes)}</p>
       </motion.div>
     </div>
   );

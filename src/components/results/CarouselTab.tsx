@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { renderMarkdownBold } from "@/lib/formatText";
 import { CarouselContent as CarouselData, CarouselSlide } from "@/types/content";
 import { RefreshCw } from "lucide-react";
 
@@ -67,8 +68,8 @@ export function CarouselTab({ carousel, onRegenerateSlide }: CarouselTabProps) {
                 <img src={slide.image_url} alt={`Slide ${slide.slide_number}`} className="w-full h-full object-cover" />
               </div>
             )}
-            <h4 className="text-sm font-semibold text-foreground">{slide.title}</h4>
-            <p className="text-xs text-foreground/75 leading-relaxed whitespace-pre-wrap">{slide.body}</p>
+            <h4 className="text-sm font-semibold text-foreground">{renderMarkdownBold(slide.title)}</h4>
+            <p className="text-xs text-foreground/75 leading-relaxed whitespace-pre-wrap">{renderMarkdownBold(slide.body)}</p>
             <div className="pt-2 border-t border-border/50">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Objetivo Emocional</span>
               <p className="text-xs text-foreground/60 mt-0.5">{slide.emotional_goal}</p>
