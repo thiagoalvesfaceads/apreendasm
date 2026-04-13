@@ -1,25 +1,33 @@
 
 
-## Plano: Mostrar estimativa de custo para admins
+## Plano: Renderizar markdown bold (`**texto**`) como HTML `<strong>` nos resultados
 
-Mudança de **1 linha** em `src/pages/ContentEngine.tsx`.
+### Problema
+Os componentes de resultado exibem `**texto**` literalmente em vez de renderizar como negrito. O canvas do CardGenerator trata isso corretamente, mas os componentes React de preview não convertem markdown bold para HTML.
 
-### Mudança
+### Solução
+Criar uma função utilitária `renderMarkdownBold` que converte `**texto**` em `<strong>texto</strong>` e usar nos componentes que exibem texto gerado pela IA.
 
-**Linha 512**: remover a condição `!isAdmin &&` que esconde a estimativa de custo para admins.
+### Mudanças
 
-```
-// De:
-{!isAdmin && (() => {
+**1. Criar `src/lib/formatText.tsx`**
+- Função `renderMarkdownBold(text: string): React.ReactNode` que faz split no padrão `**...**` e retorna array de strings e `<strong>` elements
 
-// Para:
-{(() => {
-```
+**2. `src/components/results/CarouselTab.tsx`**
+- Linha 70: título `{slide.title}` → `{renderMarkdownBold(slide.title)}`
+- Linha 71: body `{slide.body}` → `{renderMarkdownBold(slide.body)}`
 
-Isso faz a estimativa aparecer para todos os usuários (incluindo admin). A lógica de cobrança real (que isenta admins) não é alterada — fica tudo no backend/hook.
+**3. `src/components/results/CaptionTab.tsx`**
+- Linha 34: caption → `{renderMarkdownBold(caption)}`
+- Linha 37: cta → `{renderMarkdownBold(cta)}`
 
-### Arquivo alterado
-| Arquivo | Mudança |
-|---------|---------|
-| `src/pages/ContentEngine.tsx` | Remover `!isAdmin &&` na linha 512 |
+**4. `src/components/results/ReelsTab.tsx`**
+- Linha 35: hook
+- Linha 44: script
+- Linha 77: editing_notes
+
+### O que NÃO muda
+- CardGenerator (canvas) — já funciona
+- Edge functions, lógica de geração
+- Nenhuma tabela ou RLS
 
