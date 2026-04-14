@@ -259,7 +259,7 @@ export default function ContentEngine() {
     if (prompts.length === 0) { setLoadingImages(false); return; }
     try {
       const { data, error: fnError } = await supabase.functions.invoke("generate-images", {
-        body: { prompts, visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle },
+        body: { prompts, visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, image_provider: form.imageProvider },
       });
       if (fnError) throw new Error(fnError.message);
       const urls: (string | null)[] = data?.urls || [];
@@ -277,7 +277,7 @@ export default function ContentEngine() {
     setImages((prev) => ({ ...prev, [slide.slide_number]: "loading" }));
     try {
       const { data, error: fnError } = await supabase.functions.invoke("generate-images", {
-        body: { prompts: [slide.visual_prompt], visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle },
+        body: { prompts: [slide.visual_prompt], visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, image_provider: form.imageProvider },
       });
       if (fnError) throw new Error(fnError.message);
       const url = data?.urls?.[0];
@@ -494,10 +494,25 @@ export default function ContentEngine() {
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-sm font-medium text-foreground/80">Gerar Imagens Automaticamente</label>
-                      <p className="text-xs text-muted-foreground mt-0.5">Usa Google Gemini para gerar visuais</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Gera visuais para cada slide do carrossel</p>
                     </div>
                     <Switch checked={form.generateImages} onCheckedChange={(v) => set("generateImages", v)} />
                   </div>
+
+                  {form.generateImages && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground/80">Provider de Imagem</label>
+                      <Select value={form.imageProvider} onValueChange={(v) => set("imageProvider", v)}>
+                        <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(Object.entries(IMAGE_PROVIDER_LABELS) as [ImageProvider, string][]).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">80 créditos por imagem, independente do provider</p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground/80">Estilo Visual</label>
