@@ -25,6 +25,13 @@ export const AI_MODEL_INFO: Record<AIModel, AIModelInfo> = {
   "minimax-m2": { label: "MiniMax M2", provider: "minimax", apiModel: "MiniMax-M1", cost: 25 },
 };
 
+export type ImageProvider = "gemini" | "minimax";
+
+export const IMAGE_PROVIDER_LABELS: Record<ImageProvider, string> = {
+  gemini: "Google Gemini",
+  minimax: "MiniMax",
+};
+
 export interface ContentInput {
   idea: string;
   format: ContentFormat;
@@ -38,6 +45,7 @@ export interface ContentInput {
   visual_style: VisualStyle;
   ai_provider: AIProvider;
   ai_model: AIModel;
+  image_provider?: ImageProvider;
 }
 
 export interface Strategy {

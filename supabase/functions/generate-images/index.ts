@@ -11,6 +11,71 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function generateSingleImageMiniMax(
+  prompt: string,
+  index: number,
+  apiKey: string,
+  supabase: any,
+  timestamp: number,
+  aspectRatio: string = "3:4",
+): Promise<string | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await delay(2000);
+    try {
+      const response = await fetch("https://api.minimax.io/v1/image_generation", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "image-01",
+          prompt,
+          aspect_ratio: aspectRatio,
+          response_format: "b64_json",
+          n: 1,
+          prompt_optimizer: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const status = response.status;
+        const text = await response.text();
+        console.error(`MiniMax image error for prompt ${index} (attempt ${attempt}):`, status, text);
+        if (status === 429) break;
+        continue;
+      }
+
+      const data = await response.json();
+      const imageData = data?.data?.image_list?.[0]?.image_base64;
+      if (!imageData) {
+        console.warn(`No image in MiniMax response for prompt ${index} (attempt ${attempt})`);
+        continue;
+      }
+
+      const bytes = Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0));
+      const filePath = `${timestamp}_${index}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("generated-images")
+        .upload(filePath, bytes, { contentType: "image/png", upsert: true });
+
+      if (uploadError) {
+        console.error(`Upload error for MiniMax prompt ${index}:`, uploadError);
+        return null;
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from("generated-images")
+        .getPublicUrl(filePath);
+
+      return publicUrl.publicUrl;
+    } catch (err) {
+      console.error(`Error processing MiniMax prompt ${index} (attempt ${attempt}):`, err);
+    }
+  }
+  return null;
+}
+
 async function generateSingleImage(
   prompt: string,
   index: number,
@@ -145,7 +210,8 @@ serve(async (req) => {
   }
 
   try {
-    const { prompts, visual_style } = await req.json();
+    const { prompts, visual_style, image_provider } = await req.json();
+    const provider = image_provider || "gemini";
 
     if (!prompts || !Array.isArray(prompts) || prompts.length === 0) {
       return new Response(JSON.stringify({ error: "prompts array is required" }), {
@@ -155,10 +221,16 @@ serve(async (req) => {
     }
 
     const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-    if (!GOOGLE_AI_API_KEY) {
+    const MINIMAX_API_KEY = Deno.env.get("MINIMAX_API_KEY");
+    
+    if (provider === "gemini" && !GOOGLE_AI_API_KEY) {
       return new Response(JSON.stringify({ error: "GOOGLE_AI_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (provider === "minimax" && !MINIMAX_API_KEY) {
+      return new Response(JSON.stringify({ error: "MINIMAX_API_KEY not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -231,10 +303,12 @@ serve(async (req) => {
       const batchPromises: Promise<{ index: number; url: string | null }>[] = [];
 
       for (let i = batchStart; i < batchEnd; i++) {
-        batchPromises.push(
-          generateSingleImage(prompts[i], i, visual_style, GOOGLE_AI_API_KEY, supabase, timestamp)
-            .then((url) => ({ index: i, url }))
-        );
+        // Force Gemini for carrosseis_thiago (needs text rendering), otherwise use selected provider
+        const useProvider = visual_style === "carrosseis_thiago" ? "gemini" : provider;
+        const genPromise = useProvider === "minimax"
+          ? generateSingleImageMiniMax(prompts[i], i, MINIMAX_API_KEY!, supabase, timestamp)
+          : generateSingleImage(prompts[i], i, visual_style, GOOGLE_AI_API_KEY!, supabase, timestamp);
+        batchPromises.push(genPromise.then((url) => ({ index: i, url })));
       }
 
       const results = await Promise.allSettled(batchPromises);
@@ -250,9 +324,9 @@ serve(async (req) => {
       await supabase.from("usage_log").insert({
         user_id: userId,
         function_name: "generate-images",
-        ai_model: "gemini-3.1-flash-image",
+        ai_model: provider === "minimax" ? "minimax-image-01" : "gemini-3.1-flash-image",
         credits_used: totalCost,
-        metadata: { image_count: prompts.length, visual_style },
+        metadata: { image_count: prompts.length, visual_style, image_provider: provider },
       });
     }
 
