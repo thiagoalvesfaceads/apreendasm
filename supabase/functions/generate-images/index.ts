@@ -47,7 +47,42 @@ async function generateSingleImageMiniMax(
       }
 
       const data = await response.json();
-      const imageData = data?.data?.image_list?.[0]?.image_base64;
+      console.log(`MiniMax image raw response for prompt ${index}:`, JSON.stringify(data).substring(0, 500));
+
+      let imageData = data?.data?.image_list?.[0]?.image_base64
+        || data?.data?.image_list?.[0]?.b64_json
+        || data?.data?.[0]?.b64_json
+        || data?.image_list?.[0]?.image_base64;
+
+      // Try URL-based response if no base64
+      const imageUrl = !imageData && (
+        data?.data?.image_list?.[0]?.image_url
+        || data?.data?.[0]?.url
+      );
+
+      if (imageUrl) {
+        try {
+          const imgResp = await fetch(imageUrl);
+          if (imgResp.ok) {
+            const imgBytes = new Uint8Array(await imgResp.arrayBuffer());
+            const filePath = `${timestamp}_${index}.png`;
+            const { error: uploadError } = await supabase.storage
+              .from("generated-images")
+              .upload(filePath, imgBytes, { contentType: "image/png", upsert: true });
+            if (uploadError) {
+              console.error(`Upload error for MiniMax URL prompt ${index}:`, uploadError);
+              return null;
+            }
+            const { data: publicUrl } = supabase.storage
+              .from("generated-images")
+              .getPublicUrl(filePath);
+            return publicUrl.publicUrl;
+          }
+        } catch (urlErr) {
+          console.error(`Error fetching MiniMax image URL for prompt ${index}:`, urlErr);
+        }
+      }
+
       if (!imageData) {
         console.warn(`No image in MiniMax response for prompt ${index} (attempt ${attempt})`);
         continue;
