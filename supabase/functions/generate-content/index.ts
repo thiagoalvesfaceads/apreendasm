@@ -287,8 +287,16 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
   }
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("No content in MiniMax response");
+  console.log("MiniMax raw response:", JSON.stringify(data).substring(0, 2000));
+  
+  let content = data.choices?.[0]?.message?.content;
+  if (!content) {
+    // Some MiniMax models return in data.reply or data.output
+    content = data.reply || data.output;
+  }
+  if (!content) throw new Error(`No content in MiniMax response. Keys: ${Object.keys(data).join(",")}`);
+  
+  if (typeof content === "object") return content;
   return JSON.parse(content);
 }
 
