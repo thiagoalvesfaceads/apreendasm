@@ -76,7 +76,7 @@ const MODEL_CONFIG: Record<string, ModelConfig> = {
   "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 10 },
   "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 40 },
   "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 50 },
-  "minimax-m2": { provider: "minimax", apiModel: "MiniMax-M1", cost: 5 },
+  "minimax-m2": { provider: "minimax", apiModel: "MiniMax-M2.7", cost: 5 },
 };
 
 // --- Provider-specific AI callers ---
