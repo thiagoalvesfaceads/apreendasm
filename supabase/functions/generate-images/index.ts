@@ -324,9 +324,9 @@ serve(async (req) => {
       await supabase.from("usage_log").insert({
         user_id: userId,
         function_name: "generate-images",
-        ai_model: "gemini-3.1-flash-image",
+        ai_model: provider === "minimax" ? "minimax-image-01" : "gemini-3.1-flash-image",
         credits_used: totalCost,
-        metadata: { image_count: prompts.length, visual_style },
+        metadata: { image_count: prompts.length, visual_style, image_provider: provider },
       });
     }
 
