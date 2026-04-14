@@ -1,4 +1,5 @@
-import { ImageIcon, RefreshCw, Loader2 } from "lucide-react";
+import { ImageIcon, RefreshCw, Loader2, Download } from "lucide-react";
+import { toast } from "sonner";
 
 interface ImagesTabProps {
   images: { label: string; url?: string }[];
@@ -9,6 +10,21 @@ interface ImagesTabProps {
 
 export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSingle }: ImagesTabProps) {
   const hasAnyImages = images.some((img) => img.url);
+
+  const handleDownload = async (url: string, label: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${label.replace(/\s+/g, "-").toLowerCase()}.png`;
+      a.click();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Erro ao baixar imagem");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -68,14 +84,22 @@ export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSing
             {img.url ? (
               <div className="relative aspect-square">
                 <img src={img.url} alt={img.label} className="w-full h-full object-cover" />
-                {onRegenerateSingle && (
+                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onRegenerateSingle && (
+                    <button
+                      onClick={() => onRegenerateSingle(i)}
+                      className="w-8 h-8 rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-foreground" />
+                    </button>
+                  )}
                   <button
-                    onClick={() => onRegenerateSingle(i)}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-background/80 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleDownload(img.url!, img.label)}
+                    className="w-8 h-8 rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 text-foreground" />
+                    <Download className="w-3.5 h-3.5 text-foreground" />
                   </button>
-                )}
+                </div>
               </div>
             ) : (
               <div className="aspect-square bg-secondary flex items-center justify-center">
