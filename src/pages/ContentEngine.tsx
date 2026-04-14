@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins, Download } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CreditBalance } from "@/components/CreditBalance";
