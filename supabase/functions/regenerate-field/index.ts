@@ -209,7 +209,9 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
   if (!content) throw new Error(`No content in MiniMax response. Keys: ${Object.keys(data).join(",")}`);
   
   if (typeof content === "object") return JSON.stringify(content);
-  return content.trim();
+  // Strip markdown code fences that MiniMax sometimes wraps around responses
+  content = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+  return content;
 }
 
 // --- Router ---
