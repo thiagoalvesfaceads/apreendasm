@@ -3,7 +3,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CreditBalance } from "@/components/CreditBalance";
@@ -894,7 +894,29 @@ export default function ContentEngine() {
                   <div className="text-sm text-muted-foreground">Gerando imagens...</div>
                 </div>
               )}
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-end gap-2 mb-4">
+                {result.carousel?.slides && Object.values(images).some((v) => v && v !== "loading" && v !== "error") && (
+                  <Button variant="secondary" size="sm" className="gap-1.5 text-xs" onClick={async () => {
+                    for (const slide of result.carousel.slides) {
+                      const url = images[slide.slide_number];
+                      if (url && url !== "loading" && url !== "error") {
+                        try {
+                          const res = await fetch(url);
+                          const blob = await res.blob();
+                          const blobUrl = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = blobUrl;
+                          a.download = `card-${slide.slide_number}.png`;
+                          a.click();
+                          window.URL.revokeObjectURL(blobUrl);
+                        } catch { /* skip */ }
+                      }
+                    }
+                    toast.success("Download iniciado!");
+                  }}>
+                    <Download className="w-3.5 h-3.5" /> Baixar Todas
+                  </Button>
+                )}
                 {result.carousel?.slides && (
                   <Button variant="secondary" size="sm" onClick={() => handleGenerateImages(result.carousel.slides)} className="gap-1.5 text-xs">
                     <RefreshCw className="w-3.5 h-3.5" /> Gerar Todas
@@ -920,9 +942,27 @@ export default function ContentEngine() {
                       <div className="p-2">
                         <div className="text-xs font-semibold text-primary mb-1">Card {slide.slide_number}</div>
                         <div className="text-xs text-muted-foreground mb-2 line-clamp-2">{slide.title}</div>
-                        <Button variant="secondary" size="sm" className="w-full gap-1 h-7 text-xs" onClick={() => handleRegenerateSlide(slide)}>
-                          <RefreshCw className="w-3 h-3" /> {img && img !== "loading" && img !== "error" ? "Regenerar" : "Gerar"}
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button variant="secondary" size="sm" className="flex-1 gap-1 h-7 text-xs" onClick={() => handleRegenerateSlide(slide)}>
+                            <RefreshCw className="w-3 h-3" /> {img && img !== "loading" && img !== "error" ? "Regenerar" : "Gerar"}
+                          </Button>
+                          {img && img !== "loading" && img !== "error" && (
+                            <Button variant="secondary" size="sm" className="h-7 w-7 p-0" onClick={async () => {
+                              try {
+                                const res = await fetch(img);
+                                const blob = await res.blob();
+                                const blobUrl = window.URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = blobUrl;
+                                a.download = `card-${slide.slide_number}.png`;
+                                a.click();
+                                window.URL.revokeObjectURL(blobUrl);
+                              } catch { toast.error("Erro ao baixar imagem"); }
+                            }}>
+                              <Download className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
