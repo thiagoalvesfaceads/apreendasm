@@ -361,22 +361,22 @@ export default function ContentEngine() {
   };
 
   // Determine which tabs to show based on wizard progress
-  const getTabs = () => {
+  const getTabsForStep = (step: number) => {
     const tabs: { key: string; label: string; step: number }[] = [];
-    if (wizardStep >= 1) tabs.push({ key: "estrategia", label: "Estratégia", step: 1 });
-    if (wizardStep >= 2) tabs.push({ key: form.format === "reels" ? "reels" : "carrossel", label: form.format === "reels" ? "Reels" : "Carrossel", step: 2 });
-    if (wizardStep >= 3) tabs.push({ key: "legenda", label: "Legenda", step: 3 });
-    if (wizardStep >= 4 && form.generateImages) tabs.push({ key: "prompts", label: "Prompts Visuais", step: 4 });
-    if (wizardStep >= 5 && form.generateImages) tabs.push({ key: "imagens", label: "Imagens", step: 5 });
+    if (step >= 1) tabs.push({ key: "estrategia", label: "Estratégia", step: 1 });
+    if (step >= 2) tabs.push({ key: form.format === "reels" ? "reels" : "carrossel", label: form.format === "reels" ? "Reels" : "Carrossel", step: 2 });
+    if (step >= 3) tabs.push({ key: "legenda", label: "Legenda", step: 3 });
+    if (step >= 4 && form.generateImages) tabs.push({ key: "prompts", label: "Prompts Visuais", step: 4 });
+    if (step >= 5 && form.generateImages) tabs.push({ key: "imagens", label: "Imagens", step: 5 });
     return tabs;
   };
 
-  const tabs = getTabs();
+  const tabs = getTabsForStep(wizardStep);
   const [activeTab, setActiveTab] = useState("estrategia");
 
   // Auto-select the latest tab when wizard progresses
   useEffect(() => {
-    const t = getTabs();
+    const t = getTabsForStep(wizardStep);
     if (t.length > 0) {
       setActiveTab(t[t.length - 1].key);
     }
@@ -384,14 +384,23 @@ export default function ContentEngine() {
 
   // Determine the max step for this flow
   const maxSteps = form.generateImages ? 5 : 3;
-  const progressPercent = wizardStep > 0 ? (wizardStep / maxSteps) * 100 : 0;
+
+  // Clamp wizardStep to maxSteps
+  useEffect(() => {
+    if (wizardStep > maxSteps) {
+      setWizardStep(maxSteps as WizardStep);
+    }
+  }, [wizardStep, maxSteps]);
+
+  const clampedStep = Math.min(wizardStep, maxSteps) as WizardStep;
+  const progressPercent = clampedStep > 0 ? (clampedStep / maxSteps) * 100 : 0;
 
   // What's the next action for the current active tab?
   const getNextAction = () => {
     const currentTabStep = tabs.find(t => t.key === activeTab)?.step;
     if (!currentTabStep) return null;
-    // Only show "Continuar" on the latest step
-    if (currentTabStep < wizardStep) return null;
+    // Only show "Continuar" on the latest step (use clamped value)
+    if (currentTabStep < clampedStep) return null;
 
     if (currentTabStep === 1) return { label: "Continuar → Gerar Conteúdo", action: handleGenerateContent };
     if (currentTabStep === 2) return { label: "Continuar → Gerar Legenda", action: handleGenerateCaption };
