@@ -1,16 +1,30 @@
 
 
-## Plano: Corrigir nome do modelo MiniMax de `MiniMax-M1` para `MiniMax-M2.7`
+## Plano: Corrigir parsing do MiniMax — strip markdown fences
 
-O erro `"your current token plan not support model, MiniMax-M1"` confirma que o modelo correto é `MiniMax-M2.7`.
+### Problema
+O MiniMax M2.7 retorna o JSON envolto em markdown fences (`` ```json ... ``` ``), mesmo com `response_format: { type: "json_object" }`. O `JSON.parse` falha com "Unexpected token '`'".
 
-### Arquivos a alterar
+### Solução
+Adicionar limpeza de markdown fences no `callMiniMax` antes do `JSON.parse`, tanto em `generate-content` quanto em `regenerate-field`.
 
+### Mudança (ambos os arquivos)
+
+Na função `callMiniMax`, antes de `JSON.parse(content)`, adicionar strip de fences:
+
+```typescript
+if (typeof content === "string") {
+  // Strip markdown code fences (```json ... ```)
+  content = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+}
+return JSON.parse(content);
+```
+
+### Arquivos alterados
 | Arquivo | Mudança |
 |---------|---------|
-| `src/types/content.ts` | `apiModel: "MiniMax-M1"` → `"MiniMax-M2.7"` |
-| `supabase/functions/generate-content/index.ts` | `apiModel: "MiniMax-M1"` → `"MiniMax-M2.7"` no MODEL_CONFIG |
-| `supabase/functions/regenerate-field/index.ts` | `apiModel: "MiniMax-M1"` → `"MiniMax-M2.7"` no MODEL_CONFIG |
+| `supabase/functions/generate-content/index.ts` | Strip markdown fences antes do JSON.parse em `callMiniMax` |
+| `supabase/functions/regenerate-field/index.ts` | Mesma correção |
 
-Três substituições simples de string. Redeploy das duas edge functions após a mudança.
+Redeploy das duas edge functions após a mudança.
 
