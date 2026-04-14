@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CreditBalance } from "@/components/CreditBalance";
 import { estimateCost, CREDIT_COSTS } from "@/hooks/useCredits";
-import { AI_MODEL_INFO } from "@/types/content";
+import { AI_MODEL_INFO, IMAGE_PROVIDER_LABELS, type ImageProvider } from "@/types/content";
 import {
   Select,
   SelectContent,
@@ -53,6 +53,7 @@ interface FormState {
   generateImages: boolean;
   visualStyle: string;
   aiModel: string;
+  imageProvider: ImageProvider;
 }
 
 export default function ContentEngine() {
@@ -95,6 +96,7 @@ export default function ContentEngine() {
     awareness: "frio", tone: "reflexivo", niche: "",
     offer: "", cards: "7", generateImages: false,
     visualStyle: "editorial premium", aiModel: "gemini-flash-lite",
+    imageProvider: "gemini",
   });
 
   const [loading, setLoading] = useState(false);
