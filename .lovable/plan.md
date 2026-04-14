@@ -1,34 +1,28 @@
 
 
-## Plano: Adicionar botão "Baixar Todas" na aba Imagens do ContentEngine
+## Plano: Remover integração Canva
 
-### Problema
-Os cards individuais já têm botões, mas falta um botão de download na aba de imagens — especificamente um "Baixar Todas" no topo (ao lado do "Gerar Todas") e um botão de download individual em cada card.
+### O que será removido
 
-### Mudanças em `src/pages/ContentEngine.tsx`
+1. **`src/pages/CanvaCallback.tsx`** — página inteira deletada
+2. **`supabase/functions/canva-auth-url/index.ts`** — edge function deletada
+3. **`supabase/functions/canva-callback/index.ts`** — edge function deletada
+4. **`src/App.tsx`** — remover import do CanvaCallback e a rota `/canva-callback`
+5. **`src/pages/ContentEngine.tsx`** — remover estado `canvaConnected`/`canvaLoading`, useEffect de verificação, função `handleConnectCanva`, e o botão "Conectar Canva" no header (linhas 63-92 e 334-344)
+6. **`src/pages/Index.tsx`** — remover estado `canvaConnected`, query `canva_tokens`, card do Canva no dashboard, e import `Palette`
 
-1. **Importar `Download`** do lucide-react (linha 6)
+### O que NÃO será tocado
+- `src/pages/CardGenerator.tsx` — usa `canvas` (HTML Canvas API), nada a ver com Canva
+- `src/components/ui/sidebar.tsx` — usa `offcanvas`, nada a ver com Canva
+- Tabela `canva_tokens` no banco — pode ser removida depois via migration se quiser
 
-2. **Adicionar função `handleDownloadImage`** — fetch → blob → download do navegador
-
-3. **Adicionar função `handleDownloadAll`** — itera todas as imagens válidas e baixa cada uma
-
-4. **Botão "Baixar Todas"** ao lado do "Gerar Todas" (linha ~899), visível apenas quando há imagens geradas
-
-5. **Botão de download por card** ao lado do "Regenerar/Gerar" (linha ~923), visível apenas quando a imagem existe
-
-### Layout
-```text
-                            [Baixar Todas ⬇] [Gerar Todas ↻]
-┌────────┐  ┌────────┐  ┌────────┐
-│ imagem │  │ imagem │  │ imagem │
-│Card 1  │  │Card 2  │  │Card 3  │
-│[Regen] [⬇]│[Regen] [⬇]│[Gerar]  │
-└────────┘  └────────┘  └────────┘
-```
-
-### Arquivo alterado
-| Arquivo | Mudança |
-|---------|---------|
-| `src/pages/ContentEngine.tsx` | Import Download, funções de download, botões no topo e por card |
+### Arquivos alterados
+| Arquivo | Ação |
+|---------|------|
+| `src/pages/CanvaCallback.tsx` | Deletar |
+| `supabase/functions/canva-auth-url/index.ts` | Deletar |
+| `supabase/functions/canva-callback/index.ts` | Deletar |
+| `src/App.tsx` | Remover import e rota |
+| `src/pages/ContentEngine.tsx` | Remover estado, useEffect, handler e botão |
+| `src/pages/Index.tsx` | Remover card Canva e query relacionada |
 
