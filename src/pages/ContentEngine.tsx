@@ -59,7 +59,7 @@ interface FormState {
 export default function ContentEngine() {
   const { isAdmin, signOut, user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  
 
   const [form, setForm] = useState<FormState>({
     idea: "", format: "carrossel", goal: "descoberta",
