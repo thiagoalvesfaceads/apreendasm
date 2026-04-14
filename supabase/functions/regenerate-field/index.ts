@@ -64,7 +64,7 @@ ${ANTI_CONTAMINATION}`,
 // --- Model config ---
 
 interface ModelConfig {
-  provider: "google" | "openai" | "anthropic";
+  provider: "google" | "openai" | "anthropic" | "minimax";
   apiModel: string;
   cost: number;
 }
@@ -76,6 +76,7 @@ const MODEL_CONFIG: Record<string, ModelConfig> = {
   "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 10 },
   "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 40 },
   "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 50 },
+  "minimax-m2": { provider: "minimax", apiModel: "MiniMax-M1", cost: 5 },
 };
 
 // --- Provider-specific AI callers ---
@@ -174,6 +175,36 @@ async function callAnthropic(apiKey: string, system: string, userPrompt: string,
   return text.trim();
 }
 
+async function callMiniMax(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
+  const response = await fetch("https://api.minimax.io/v1/text/chatcompletion_v2", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.8,
+    }),
+  });
+
+  if (!response.ok) {
+    const status = response.status;
+    const body = await response.text();
+    if (status === 429) throw new Error("RATE_LIMITED");
+    throw new Error(`MiniMax error [${status}]: ${body}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("No content in MiniMax response");
+  return content.trim();
+}
+
 // --- Router ---
 
 async function callAI(aiModel: string, system: string, userPrompt: string): Promise<string> {
@@ -195,6 +226,11 @@ async function callAI(aiModel: string, system: string, userPrompt: string): Prom
       const key = Deno.env.get("ANTHROPIC_API_KEY");
       if (!key) throw new Error("ANTHROPIC_API_KEY não configurada.");
       return callAnthropic(key, system, userPrompt, config.apiModel);
+    }
+    case "minimax": {
+      const key = Deno.env.get("MINIMAX_API_KEY");
+      if (!key) throw new Error("MINIMAX_API_KEY não configurada.");
+      return callMiniMax(key, system, userPrompt, config.apiModel);
     }
     default:
       throw new Error(`Provider desconhecido: ${config.provider}`);
