@@ -22,7 +22,7 @@ export const AI_MODEL_INFO: Record<AIModel, AIModelInfo> = {
   "gpt-4o-mini": { label: "GPT-4o Mini", provider: "openai", apiModel: "gpt-4o-mini", cost: 15 },
   "gpt-4o": { label: "GPT-4o", provider: "openai", apiModel: "gpt-4o", cost: 70 },
   "claude-sonnet": { label: "Claude Sonnet 4", provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 90 },
-  "minimax-m2": { label: "MiniMax M2", provider: "minimax", apiModel: "MiniMax-M1", cost: 25 },
+  "minimax-m2": { label: "MiniMax M2", provider: "minimax", apiModel: "MiniMax-M2.7", cost: 25 },
 };
 
 export type ImageProvider = "gemini" | "minimax";
