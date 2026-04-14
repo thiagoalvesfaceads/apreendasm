@@ -221,10 +221,16 @@ serve(async (req) => {
     }
 
     const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-    if (!GOOGLE_AI_API_KEY) {
+    const MINIMAX_API_KEY = Deno.env.get("MINIMAX_API_KEY");
+    
+    if (provider === "gemini" && !GOOGLE_AI_API_KEY) {
       return new Response(JSON.stringify({ error: "GOOGLE_AI_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (provider === "minimax" && !MINIMAX_API_KEY) {
+      return new Response(JSON.stringify({ error: "MINIMAX_API_KEY not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -297,10 +303,12 @@ serve(async (req) => {
       const batchPromises: Promise<{ index: number; url: string | null }>[] = [];
 
       for (let i = batchStart; i < batchEnd; i++) {
-        batchPromises.push(
-          generateSingleImage(prompts[i], i, visual_style, GOOGLE_AI_API_KEY, supabase, timestamp)
-            .then((url) => ({ index: i, url }))
-        );
+        // Force Gemini for carrosseis_thiago (needs text rendering), otherwise use selected provider
+        const useProvider = visual_style === "carrosseis_thiago" ? "gemini" : provider;
+        const genPromise = useProvider === "minimax"
+          ? generateSingleImageMiniMax(prompts[i], i, MINIMAX_API_KEY!, supabase, timestamp)
+          : generateSingleImage(prompts[i], i, visual_style, GOOGLE_AI_API_KEY!, supabase, timestamp);
+        batchPromises.push(genPromise.then((url) => ({ index: i, url })));
       }
 
       const results = await Promise.allSettled(batchPromises);
