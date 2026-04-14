@@ -1,31 +1,34 @@
 
 
-## Plano: Adicionar botão de download nas imagens geradas
+## Plano: Adicionar botão "Baixar Todas" na aba Imagens do ContentEngine
 
 ### Problema
-Não existe botão para baixar as imagens. O usuário só consegue ver, mas não salvar.
+Os cards individuais já têm botões, mas falta um botão de download na aba de imagens — especificamente um "Baixar Todas" no topo (ao lado do "Gerar Todas") e um botão de download individual em cada card.
 
-### Solução
-Adicionar um botão de download em cada card de imagem (ao lado do botão de regenerar), visível no hover. Ao clicar, faz fetch da imagem e dispara download via `<a>` com `download` attribute.
+### Mudanças em `src/pages/ContentEngine.tsx`
 
-### Mudanças em `src/components/results/ImagesTab.tsx`
+1. **Importar `Download`** do lucide-react (linha 6)
 
-1. Importar `Download` do lucide-react
-2. Adicionar função `handleDownload(url, filename)` que faz fetch da URL, cria blob e dispara download
-3. Adicionar botão de download no overlay do hover (ao lado do botão de regenerar), com ícone de download
+2. **Adicionar função `handleDownloadImage`** — fetch → blob → download do navegador
 
-Layout do overlay no hover:
+3. **Adicionar função `handleDownloadAll`** — itera todas as imagens válidas e baixa cada uma
+
+4. **Botão "Baixar Todas"** ao lado do "Gerar Todas" (linha ~899), visível apenas quando há imagens geradas
+
+5. **Botão de download por card** ao lado do "Regenerar/Gerar" (linha ~923), visível apenas quando a imagem existe
+
+### Layout
 ```text
-┌──────────────────┐
-│  [imagem]        │
-│         ↻  ↓    │  ← botões regenerar + download (top-right)
-└──────────────────┘
-│ Card 1           │
-└──────────────────┘
+                            [Baixar Todas ⬇] [Gerar Todas ↻]
+┌────────┐  ┌────────┐  ┌────────┐
+│ imagem │  │ imagem │  │ imagem │
+│Card 1  │  │Card 2  │  │Card 3  │
+│[Regen] [⬇]│[Regen] [⬇]│[Gerar]  │
+└────────┘  └────────┘  └────────┘
 ```
 
 ### Arquivo alterado
 | Arquivo | Mudança |
 |---------|---------|
-| `src/components/results/ImagesTab.tsx` | Adicionar botão de download com fetch+blob em cada imagem |
+| `src/pages/ContentEngine.tsx` | Import Download, funções de download, botões no topo e por card |
 
