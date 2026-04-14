@@ -11,6 +11,21 @@ interface ImagesTabProps {
 export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSingle }: ImagesTabProps) {
   const hasAnyImages = images.some((img) => img.url);
 
+  const handleDownload = async (url: string, label: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${label.replace(/\s+/g, "-").toLowerCase()}.png`;
+      a.click();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Erro ao baixar imagem");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="card-premium p-12 flex flex-col items-center justify-center text-center space-y-4">
