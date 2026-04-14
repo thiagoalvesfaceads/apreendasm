@@ -11,6 +11,71 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function generateSingleImageMiniMax(
+  prompt: string,
+  index: number,
+  apiKey: string,
+  supabase: any,
+  timestamp: number,
+  aspectRatio: string = "3:4",
+): Promise<string | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await delay(2000);
+    try {
+      const response = await fetch("https://api.minimax.io/v1/image_generation", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "image-01",
+          prompt,
+          aspect_ratio: aspectRatio,
+          response_format: "b64_json",
+          n: 1,
+          prompt_optimizer: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const status = response.status;
+        const text = await response.text();
+        console.error(`MiniMax image error for prompt ${index} (attempt ${attempt}):`, status, text);
+        if (status === 429) break;
+        continue;
+      }
+
+      const data = await response.json();
+      const imageData = data?.data?.image_list?.[0]?.image_base64;
+      if (!imageData) {
+        console.warn(`No image in MiniMax response for prompt ${index} (attempt ${attempt})`);
+        continue;
+      }
+
+      const bytes = Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0));
+      const filePath = `${timestamp}_${index}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("generated-images")
+        .upload(filePath, bytes, { contentType: "image/png", upsert: true });
+
+      if (uploadError) {
+        console.error(`Upload error for MiniMax prompt ${index}:`, uploadError);
+        return null;
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from("generated-images")
+        .getPublicUrl(filePath);
+
+      return publicUrl.publicUrl;
+    } catch (err) {
+      console.error(`Error processing MiniMax prompt ${index} (attempt ${attempt}):`, err);
+    }
+  }
+  return null;
+}
+
 async function generateSingleImage(
   prompt: string,
   index: number,
@@ -145,7 +210,8 @@ serve(async (req) => {
   }
 
   try {
-    const { prompts, visual_style } = await req.json();
+    const { prompts, visual_style, image_provider } = await req.json();
+    const provider = image_provider || "gemini";
 
     if (!prompts || !Array.isArray(prompts) || prompts.length === 0) {
       return new Response(JSON.stringify({ error: "prompts array is required" }), {
