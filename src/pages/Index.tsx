@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, BookOpen, Zap, Palette, ArrowRight, FileText, Video, Coins } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, ArrowRight, FileText, Video, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,19 +20,16 @@ const Index = () => {
   const { user, isAdmin, signOut } = useAuth();
   const [generationsCount, setGenerationsCount] = useState(0);
   const [recentGenerations, setRecentGenerations] = useState<RecentGeneration[]>([]);
-  const [canvaConnected, setCanvaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [countRes, recentRes, canvaRes] = await Promise.all([
+      const [countRes, recentRes] = await Promise.all([
         supabase.from("generations").select("id", { count: "exact", head: true }),
         supabase.from("generations").select("id, title, format, created_at").order("created_at", { ascending: false }).limit(5),
-        supabase.from("canva_tokens").select("id").limit(1),
       ]);
       setGenerationsCount(countRes.count ?? 0);
       setRecentGenerations(recentRes.data ?? []);
-      setCanvaConnected((canvaRes.data?.length ?? 0) > 0);
       setLoading(false);
     };
     fetchData();
@@ -86,23 +83,6 @@ const Index = () => {
               <CardContent>
                 <p className="text-sm text-muted-foreground">
                   {loading ? "..." : `${generationsCount} conteúdo${generationsCount !== 1 ? "s" : ""} salvo${generationsCount !== 1 ? "s" : ""}`}
-                </p>
-                <ArrowRight className="w-4 h-4 text-muted-foreground mt-3 group-hover:translate-x-1 transition-transform" />
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to="/content-engine" className="group">
-            <Card className="h-full transition-colors hover:border-primary/50">
-              <CardHeader className="pb-2">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${canvaConnected ? "bg-emerald-500/10" : "bg-muted"}`}>
-                  <Palette className={`w-5 h-5 ${canvaConnected ? "text-emerald-500" : "text-muted-foreground"}`} />
-                </div>
-                <CardTitle className="text-base">Canva</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {canvaConnected ? "Conectado ✓" : "Não conectado"}
                 </p>
                 <ArrowRight className="w-4 h-4 text-muted-foreground mt-3 group-hover:translate-x-1 transition-transform" />
               </CardContent>
