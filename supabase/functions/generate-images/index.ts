@@ -32,7 +32,7 @@ async function generateSingleImageMiniMax(
           model: "image-01",
           prompt,
           aspect_ratio: aspectRatio,
-          response_format: "b64_json",
+          response_format: "url",
           n: 1,
           prompt_optimizer: true,
         }),
@@ -49,16 +49,14 @@ async function generateSingleImageMiniMax(
       const data = await response.json();
       console.log(`MiniMax image raw response for prompt ${index}:`, JSON.stringify(data).substring(0, 500));
 
-      let imageData = data?.data?.image_list?.[0]?.image_base64
-        || data?.data?.image_list?.[0]?.b64_json
-        || data?.data?.[0]?.b64_json
-        || data?.image_list?.[0]?.image_base64;
+      // With response_format: "url", MiniMax returns a URL
+      const imageUrl = data?.data?.image_list?.[0]?.image_url
+        || data?.data?.image_list?.[0]?.url
+        || data?.data?.[0]?.url;
 
-      // Try URL-based response if no base64
-      const imageUrl = !imageData && (
-        data?.data?.image_list?.[0]?.image_url
-        || data?.data?.[0]?.url
-      );
+      // Also check for base64 as fallback
+      const imageData = data?.data?.image_list?.[0]?.image_base64
+        || data?.data?.[0]?.b64_json;
 
       if (imageUrl) {
         try {
@@ -349,7 +347,7 @@ serve(async (req) => {
         function_name: "generate-images",
         ai_model: "minimax-image-01",
         credits_used: totalCost,
-        metadata: { image_count: prompts.length, visual_style, image_provider: provider },
+        metadata: { image_count: prompts.length, visual_style, image_provider: "minimax" },
       });
     }
 
