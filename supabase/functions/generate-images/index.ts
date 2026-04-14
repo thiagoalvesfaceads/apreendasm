@@ -245,8 +245,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompts, visual_style, image_provider } = await req.json();
-    const provider = image_provider || "gemini";
+    const { prompts, visual_style } = await req.json();
 
     if (!prompts || !Array.isArray(prompts) || prompts.length === 0) {
       return new Response(JSON.stringify({ error: "prompts array is required" }), {
@@ -255,15 +254,8 @@ serve(async (req) => {
       });
     }
 
-    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
     const MINIMAX_API_KEY = Deno.env.get("MINIMAX_API_KEY");
-    
-    if (provider === "gemini" && !GOOGLE_AI_API_KEY) {
-      return new Response(JSON.stringify({ error: "GOOGLE_AI_API_KEY not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (provider === "minimax" && !MINIMAX_API_KEY) {
+    if (!MINIMAX_API_KEY) {
       return new Response(JSON.stringify({ error: "MINIMAX_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -338,11 +330,7 @@ serve(async (req) => {
       const batchPromises: Promise<{ index: number; url: string | null }>[] = [];
 
       for (let i = batchStart; i < batchEnd; i++) {
-        // Force Gemini for carrosseis_thiago (needs text rendering), otherwise use selected provider
-        const useProvider = visual_style === "carrosseis_thiago" ? "gemini" : provider;
-        const genPromise = useProvider === "minimax"
-          ? generateSingleImageMiniMax(prompts[i], i, MINIMAX_API_KEY!, supabase, timestamp)
-          : generateSingleImage(prompts[i], i, visual_style, GOOGLE_AI_API_KEY!, supabase, timestamp);
+        const genPromise = generateSingleImageMiniMax(prompts[i], i, MINIMAX_API_KEY!, supabase, timestamp);
         batchPromises.push(genPromise.then((url) => ({ index: i, url })));
       }
 
@@ -359,7 +347,7 @@ serve(async (req) => {
       await supabase.from("usage_log").insert({
         user_id: userId,
         function_name: "generate-images",
-        ai_model: provider === "minimax" ? "minimax-image-01" : "gemini-3.1-flash-image",
+        ai_model: "minimax-image-01",
         credits_used: totalCost,
         metadata: { image_count: prompts.length, visual_style, image_provider: provider },
       });
