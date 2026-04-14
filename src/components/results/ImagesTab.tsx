@@ -84,14 +84,22 @@ export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSing
             {img.url ? (
               <div className="relative aspect-square">
                 <img src={img.url} alt={img.label} className="w-full h-full object-cover" />
-                {onRegenerateSingle && (
+                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onRegenerateSingle && (
+                    <button
+                      onClick={() => onRegenerateSingle(i)}
+                      className="w-8 h-8 rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-foreground" />
+                    </button>
+                  )}
                   <button
-                    onClick={() => onRegenerateSingle(i)}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-background/80 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleDownload(img.url!, img.label)}
+                    className="w-8 h-8 rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 text-foreground" />
+                    <Download className="w-3.5 h-3.5 text-foreground" />
                   </button>
-                )}
+                </div>
               </div>
             ) : (
               <div className="aspect-square bg-secondary flex items-center justify-center">
