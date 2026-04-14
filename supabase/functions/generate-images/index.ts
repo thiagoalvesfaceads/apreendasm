@@ -59,6 +59,7 @@ async function generateSingleImageMiniMax(
         || data?.data?.[0]?.b64_json;
 
       if (imageUrl) {
+        console.log(`MiniMax returned URL for prompt ${index}, fetching...`);
         try {
           const imgResp = await fetch(imageUrl);
           if (imgResp.ok) {
@@ -66,7 +67,7 @@ async function generateSingleImageMiniMax(
             const filePath = `${timestamp}_${index}.png`;
             const { error: uploadError } = await supabase.storage
               .from("generated-images")
-              .upload(filePath, imgBytes, { contentType: "image/png", upsert: true });
+              .upload(filePath, imgBytes, { contentType: "image/jpeg", upsert: true });
             if (uploadError) {
               console.error(`Upload error for MiniMax URL prompt ${index}:`, uploadError);
               return null;
@@ -74,7 +75,10 @@ async function generateSingleImageMiniMax(
             const { data: publicUrl } = supabase.storage
               .from("generated-images")
               .getPublicUrl(filePath);
+            console.log(`Successfully uploaded MiniMax image for prompt ${index}`);
             return publicUrl.publicUrl;
+          } else {
+            console.error(`Failed to fetch MiniMax image URL for prompt ${index}: HTTP ${imgResp.status}`);
           }
         } catch (urlErr) {
           console.error(`Error fetching MiniMax image URL for prompt ${index}:`, urlErr);
