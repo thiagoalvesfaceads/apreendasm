@@ -371,12 +371,12 @@ export default function ContentEngine() {
     return tabs;
   };
 
-  const tabs = getTabs();
+  const tabs = getTabsForStep(wizardStep);
   const [activeTab, setActiveTab] = useState("estrategia");
 
   // Auto-select the latest tab when wizard progresses
   useEffect(() => {
-    const t = getTabs();
+    const t = getTabsForStep(wizardStep);
     if (t.length > 0) {
       setActiveTab(t[t.length - 1].key);
     }
