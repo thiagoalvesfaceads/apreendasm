@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, CheckCircle, ExternalLink, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins, Download } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CreditBalance } from "@/components/CreditBalance";
@@ -59,37 +59,7 @@ interface FormState {
 export default function ContentEngine() {
   const { isAdmin, signOut, user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [canvaConnected, setCanvaConnected] = useState(false);
-  const [canvaLoading, setCanvaLoading] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    if (searchParams.get("canva") === "connected") {
-      setCanvaConnected(true);
-      toast.success("Canva conectado com sucesso!");
-      searchParams.delete("canva");
-      setSearchParams(searchParams, { replace: true });
-      return;
-    }
-    supabase
-      .from("canva_tokens")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setCanvaConnected(true); });
-  }, [user]);
-
-  const handleConnectCanva = async () => {
-    setCanvaLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("canva-auth-url");
-      if (error || !data?.url || !data?.code_verifier) { toast.error("Erro ao iniciar conexão com Canva."); return; }
-      sessionStorage.setItem("canva_code_verifier", data.code_verifier);
-      window.open(data.url, '_blank');
-    } catch { toast.error("Erro ao conectar com Canva."); }
-    finally { setCanvaLoading(false); }
-  };
+  
 
   const [form, setForm] = useState<FormState>({
     idea: "", format: "carrossel", goal: "descoberta",
@@ -331,17 +301,6 @@ export default function ContentEngine() {
                 <Coins className="w-3.5 h-3.5" /> Uso
               </Button>
             </Link>
-            {canvaConnected ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 h-8 text-emerald-500 dark:text-emerald-400">
-                <CheckCircle className="w-3.5 h-3.5" /> Canva
-              </span>
-            ) : (
-              <Button variant="ghost" size="sm" onClick={handleConnectCanva} disabled={canvaLoading}
-                className="gap-1.5 text-muted-foreground text-xs h-8">
-                <ExternalLink className="w-3.5 h-3.5" />
-                {canvaLoading ? "Conectando..." : "Conectar Canva"}
-              </Button>
-            )}
             <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5 text-muted-foreground text-xs h-8">
               <LogOut className="w-3.5 h-3.5" /> Sair
             </Button>

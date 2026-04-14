@@ -11,7 +11,7 @@ import Index from "./pages/Index.tsx";
 import Library from "./pages/Library.tsx";
 import AdminUsers from "./pages/AdminUsers.tsx";
 import ContentEngine from "./pages/ContentEngine.tsx";
-import CanvaCallback from "./pages/CanvaCallback.tsx";
+
 import CardGenerator from "./pages/CardGenerator.tsx";
 import Usage from "./pages/Usage.tsx";
 import Pricing from "./pages/Pricing.tsx";
@@ -59,14 +59,6 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <CardGenerator />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/canva-callback"
-            element={
-              <ProtectedRoute>
-                <CanvaCallback />
               </ProtectedRoute>
             }
           />
