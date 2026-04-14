@@ -10,6 +10,7 @@ export const CREDIT_COSTS = {
     "gpt-4o-mini": 15,
     "gpt-4o": 70,
     "claude-sonnet": 90,
+    "minimax-m2": 25,
   },
   "generate-images": 80, // per image
   "regenerate-field": 8, // flat cost per regeneration

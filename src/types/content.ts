@@ -5,8 +5,8 @@ export type ContentTone = "reflective" | "confrontational" | "didactic" | "emoti
 export type VisualStyle = "clean_realistic" | "editorial_premium" | "human_everyday" | "dramatic_cinematic" | "minimal_sophisticated" | "carrosseis_thiago";
 export type LeadType = "offer" | "promise" | "problem_solution" | "big_secret" | "revelation" | "story";
 export type SlideRole = "hook" | "tension" | "insight" | "solution" | "cta" | "development" | "deepening";
-export type AIProvider = "google" | "openai" | "anthropic";
-export type AIModel = "gemini-flash-lite" | "gemini-flash" | "gemini-pro" | "gpt-4o-mini" | "gpt-4o" | "claude-sonnet";
+export type AIProvider = "google" | "openai" | "anthropic" | "minimax";
+export type AIModel = "gemini-flash-lite" | "gemini-flash" | "gemini-pro" | "gpt-4o-mini" | "gpt-4o" | "claude-sonnet" | "minimax-m2";
 
 export interface AIModelInfo {
   label: string;
@@ -22,6 +22,7 @@ export const AI_MODEL_INFO: Record<AIModel, AIModelInfo> = {
   "gpt-4o-mini": { label: "GPT-4o Mini", provider: "openai", apiModel: "gpt-4o-mini", cost: 15 },
   "gpt-4o": { label: "GPT-4o", provider: "openai", apiModel: "gpt-4o", cost: 70 },
   "claude-sonnet": { label: "Claude Sonnet 4", provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 90 },
+  "minimax-m2": { label: "MiniMax M2", provider: "minimax", apiModel: "MiniMax-M1", cost: 25 },
 };
 
 export interface ContentInput {
@@ -134,6 +135,7 @@ export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
   google: "Google Gemini",
   openai: "OpenAI GPT-4o",
   anthropic: "Claude Sonnet",
+  minimax: "MiniMax M2",
 };
 
 export const AI_MODEL_LABELS: Record<AIModel, string> = {
@@ -143,4 +145,5 @@ export const AI_MODEL_LABELS: Record<AIModel, string> = {
   "gpt-4o-mini": "GPT-4o Mini — 15 créditos",
   "gpt-4o": "GPT-4o — 70 créditos",
   "claude-sonnet": "Claude Sonnet 4 — 90 créditos",
+  "minimax-m2": "MiniMax M2 — 25 créditos",
 };
