@@ -1,37 +1,31 @@
 
 
-## Plano: Corrigir o fluxo wizard — botão "Continuar" e tabs progressivas
+## Plano: Adicionar botão de download nas imagens geradas
 
 ### Problema
-O wizard não está funcionando como esperado:
-1. Todas as abas aparecem de uma vez (Estratégia + Carrossel + Legenda)
-2. O botão "Continuar" não aparece
-3. O progresso mostra "Etapa 5 de 3", ultrapassando o máximo
+Não existe botão para baixar as imagens. O usuário só consegue ver, mas não salvar.
 
-### Causa raiz
-Dois bugs no `ContentEngine.tsx`:
+### Solução
+Adicionar um botão de download em cada card de imagem (ao lado do botão de regenerar), visível no hover. Ao clicar, faz fetch da imagem e dispara download via `<a>` com `download` attribute.
 
-1. **wizardStep ultrapassa maxSteps**: quando `generateImages=false`, `maxSteps=3`, mas o código permite `wizardStep=5`. Isso faz todas as tabs aparecerem.
+### Mudanças em `src/components/results/ImagesTab.tsx`
 
-2. **getNextAction retorna null para steps passados**: a lógica na linha 394 (`if (currentTabStep < wizardStep) return null`) oculta o botão "Continuar" em qualquer aba que não seja a última. Isso é correto quando o wizard funciona passo a passo, mas se por algum motivo o wizardStep avança rápido (ex: dados carregados do paste, sessão anterior, ou backend sem step), o botão desaparece.
+1. Importar `Download` do lucide-react
+2. Adicionar função `handleDownload(url, filename)` que faz fetch da URL, cria blob e dispara download
+3. Adicionar botão de download no overlay do hover (ao lado do botão de regenerar), com ícone de download
 
-### Possível causa adicional
-A edge function pode não ter sido redeployada — se o backend ainda roda a versão antiga (sem suporte a `step`), ele retorna tudo de uma vez. O frontend recebe `strategy + carousel + caption` e deveria ignorar os dados extras, mas `handleGenerateStrategy` só usa `data.strategy` e seta `wizardStep(1)`. Contudo, se houve um fluxo via paste ou sessão anterior, isso explica o estado inconsistente.
+Layout do overlay no hover:
+```text
+┌──────────────────┐
+│  [imagem]        │
+│         ↻  ↓    │  ← botões regenerar + download (top-right)
+└──────────────────┘
+│ Card 1           │
+└──────────────────┘
+```
 
-### Correções
-
-**`src/pages/ContentEngine.tsx`:**
-
-1. **Limitar wizardStep ao maxSteps**: adicionar um `useEffect` ou clamp para garantir que `wizardStep` nunca ultrapasse `maxSteps`
-
-2. **Corrigir getNextAction**: o botão "Continuar" deve aparecer na aba do step mais recente (o último tab), não em abas anteriores. A lógica já faz isso, mas precisa garantir que funcione quando `currentTabStep === wizardStep`
-
-3. **Garantir que a edge function está deployada**: re-deploiar `generate-content` para garantir que aceita o parâmetro `step`
-
-### Arquivos alterados
-
+### Arquivo alterado
 | Arquivo | Mudança |
 |---------|---------|
-| `src/pages/ContentEngine.tsx` | Clamp wizardStep ≤ maxSteps, validar lógica do botão "Continuar" |
-| `supabase/functions/generate-content/index.ts` | Re-deploy (sem mudanças, apenas garantir deploy) |
+| `src/components/results/ImagesTab.tsx` | Adicionar botão de download com fetch+blob em cada imagem |
 

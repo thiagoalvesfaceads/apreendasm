@@ -59,34 +59,6 @@ Estrutura do Carrossel:
 - Último slide: CTA
 
 NÃO inclua visual_prompt nos slides. Deixe visual_prompt como string vazia "". Os prompts visuais serão gerados separadamente.
-NÃO inclua caption nem cta. Eles serão gerados em uma etapa posterior.
-
-Responda APENAS com JSON válido no formato:
-{
-  "title": "string",
-  "slides": [
-    {
-      "slide_number": 1,
-      "role": "hook|tension|deepening|insight|development|solution|cta",
-      "title": "string",
-      "body": "string",
-      "emotional_goal": "string",
-      "visual_prompt": ""
-    }
-  ]
-}`;
-
-const CAROUSEL_SYSTEM_FULL = `Você é um especialista em carrosséis estratégicos para redes sociais. Crie conteúdo com linguagem natural, alta clareza, emocionalmente denso mas não vendedor, premissas fortes, não genérico, sem tom robótico, CTA simples e direto, progressão lógica e emocional.
-
-Estrutura do Carrossel:
-- Slide 1: hook (gancho)
-- Slide 2: tensão/expansão
-- Slide 3: aprofundamento
-- Slide 4: virada/insight
-- Slides 5+: desenvolvimento/solução/reflexão
-- Último slide: CTA
-
-NÃO inclua visual_prompt nos slides. Deixe visual_prompt como string vazia "". Os prompts visuais serão gerados separadamente.
 
 Responda APENAS com JSON válido no formato:
 {
@@ -103,22 +75,6 @@ Responda APENAS com JSON válido no formato:
       "visual_prompt": ""
     }
   ]
-}`;
-
-const CAPTION_SYSTEM = `Você é um especialista em legendas para redes sociais. Sua função é criar legendas envolventes, estratégicas e otimizadas para engajamento.
-
-Regras:
-- A legenda deve complementar o conteúdo visual, não repeti-lo
-- Use storytelling, perguntas retóricas e gatilhos emocionais
-- Inclua hashtags relevantes (5-10)
-- O CTA deve ser claro, direto e alinhado com a estratégia
-- Mantenha o tom especificado
-- A legenda deve funcionar como um "mini-conteúdo" independente
-
-Responda APENAS com JSON válido no formato:
-{
-  "caption": "string (legenda completa com hashtags)",
-  "cta": "string (chamada para ação)"
 }`;
 
 const VISUAL_PROMPT_SYSTEM = `Você é um diretor de arte especializado em criar prompts visuais para geração de imagens por IA. Sua função é analisar o conteúdo textual FINALIZADO de cada slide de um carrossel e criar prompts visuais que complementem visualmente a narrativa.
@@ -299,6 +255,7 @@ async function callAnthropic(apiKey: string, system: string, userPrompt: string,
   const text = data.content?.[0]?.text;
   if (!text) throw new Error("No content in Anthropic response");
   
+  // Extract JSON from potential markdown code blocks
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const jsonStr = jsonMatch ? jsonMatch[1].trim() : text.trim();
   return JSON.parse(jsonStr);
@@ -334,11 +291,13 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
   
   let content = data.choices?.[0]?.message?.content;
   if (!content) {
+    // Some MiniMax models return in data.reply or data.output
     content = data.reply || data.output;
   }
   if (!content) throw new Error(`No content in MiniMax response. Keys: ${Object.keys(data).join(",")}`);
   
   if (typeof content === "object") return content;
+  // Strip markdown code fences that MiniMax sometimes wraps around JSON
   content = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
   return JSON.parse(content);
 }
@@ -387,20 +346,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user: authUser } } = await createClient(
+    // Decode user from JWT
+    const { data: { user: authUser }, error: authError } = await createClient(
       supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!
     ).auth.getUser(token);
     
     const userId = authUser?.id;
+
     const input = await req.json();
-    const { 
-      idea, format, goal, awareness, tone, niche, offer, cards, visual_style, 
-      ai_model = "gemini-flash-lite",
-      step, // NEW: wizard step - "strategy" | "content" | "caption" | "visual_prompts" | undefined (full)
-      approved_strategy, // for step="content", "caption", "visual_prompts"
-      approved_content, // for step="caption"
-      approved_slides, // for step="visual_prompts"
-    } = input;
+    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_model = "gemini-flash-lite" } = input;
 
     const modelConfig = MODEL_CONFIG[ai_model];
     if (!modelConfig) {
@@ -408,12 +362,9 @@ serve(async (req) => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const creditCost = modelConfig.cost;
 
-    // Only charge credits on first step (strategy) or full generation (no step)
-    const shouldCharge = !step || step === "strategy";
-    const creditCost = shouldCharge ? modelConfig.cost : 0;
-
-    // Check admin status
+    // Check if user is admin (admins have unlimited credits)
     let isAdmin = false;
     if (userId) {
       const { data: roleData } = await supabaseAdmin
@@ -425,8 +376,8 @@ serve(async (req) => {
       isAdmin = !!roleData;
     }
     
-    // Block Claude for welcome-only users
-    if (userId && !isAdmin && modelConfig.provider === "anthropic" && shouldCharge) {
+    // Block Claude for welcome-only users (no purchases)
+    if (userId && !isAdmin && modelConfig.provider === "anthropic") {
       const { data: purchaseData } = await supabaseAdmin
         .from("payments")
         .select("id")
@@ -455,30 +406,6 @@ serve(async (req) => {
       }
     }
 
-    // Helper to get updated balance
-    async function getBalance() {
-      if (!userId) return undefined;
-      const { data: creditData } = await supabaseAdmin
-        .from("user_credits")
-        .select("balance")
-        .eq("user_id", userId)
-        .single();
-      return creditData?.balance;
-    }
-
-    // Helper to log usage
-    async function logUsage(fnName: string, cost: number, meta: Record<string, unknown> = {}) {
-      if (userId && cost > 0) {
-        await supabaseAdmin.from("usage_log").insert({
-          user_id: userId,
-          function_name: fnName,
-          ai_model: ai_model,
-          credits_used: cost,
-          metadata: { format, niche, step, ...meta },
-        });
-      }
-    }
-
     const strategyPrompt = `Analise esta ideia e crie a camada estratégica:
 
 IDEIA: ${idea}
@@ -492,176 +419,6 @@ ${offer ? `OFERTA: ${offer}` : ""}
 Considere o nível de consciência da audiência (${awareness}) para calibrar a abordagem.
 O objetivo é ${goal}, então a estratégia deve maximizar esse resultado.
 O tom principal deve ser ${tone}.`;
-
-    // =====================
-    // STEP-BASED GENERATION
-    // =====================
-
-    if (step === "strategy") {
-      const strategy = await callAI(ai_model, STRATEGY_SYSTEM, strategyPrompt);
-      await logUsage("generate-content", creditCost);
-      const balance = await getBalance();
-      return new Response(JSON.stringify({ strategy, credits_used: creditCost, balance }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (step === "content") {
-      const strategy = approved_strategy;
-      if (!strategy) throw new Error("approved_strategy is required for step=content");
-
-      let content;
-      if (format === "reels") {
-        const reelsPrompt = `Com base nesta estratégia, crie o conteúdo completo para um Reels:
-
-ESTRATÉGIA:
-- Dor/Desejo/Tensão: ${strategy.pain_desire_tension}
-- Big Idea: ${strategy.big_idea}
-- Tipo de Lead: ${strategy.lead_type}
-- Ângulo: ${strategy.angle}
-- Promessa: ${strategy.promise}
-- Estratégia de CTA: ${strategy.cta_strategy}
-
-CONTEXTO ORIGINAL:
-- Ideia: ${idea}
-- Nicho: ${niche}
-- Tom: ${tone}
-- Objetivo: ${goal}
-- Audiência: ${awareness}
-${offer ? `- Oferta: ${offer}` : ""}
-
-Crie um roteiro envolvente seguindo a estrutura Hook > Contexto > Conflito > Conexão > CTA.`;
-
-        content = await callAI(ai_model, REELS_SYSTEM, reelsPrompt);
-        return new Response(JSON.stringify({ reels: { ...content, big_idea: strategy.big_idea, lead_type: strategy.lead_type, angle: strategy.angle } }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } else {
-        const cardToneInstruction = tone === "card"
-          ? `\n\nINSTRUÇÃO ESPECIAL — TOM "CARD":\nCada slide deve ter um body denso e de impacto. Use storytelling, frases de impacto e progressão emocional. O estilo é de posts de autoridade no Instagram — como se cada card fosse um micro-post completo. Cada parágrafo deve ter peso próprio. Não use frases genéricas ou superficiais. Escreva como Alfredo Soares, Gary Vee ou grandes criadores de conteúdo de autoridade. Cada card deve provocar reflexão profunda.\n\nTAMANHO DO BODY:\n- A MAIORIA dos slides deve ter no máximo 2 parágrafos densos\n- Apenas o slide central (se 5 slides → slide 3, se 7 slides → slide 4, se número par de slides → o mais próximo do último) pode ter até 3 parágrafos\n- O último slide (CTA) pode ter até 3 parágrafos\n- O gancho de transição (">") conta como parágrafo separado\n- NUNCA exceda esses limites. Priorize impacto por frase, não volume de texto.\n\nGANCHO DE TRANSIÇÃO: Cada card (EXCETO o último) DEVE terminar com uma frase-gancho curta seguida de ">" para instigar a leitura do próximo card. Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "olha o que acontece >", "mas tem um detalhe >", "e o melhor ainda vem >". A frase deve ser natural e criar tensão/curiosidade.\n\nÚLTIMO CARD (CTA): O último slide deve ser puramente textual, SEM imagem. Defina o visual_prompt como "none". O body deve ser um texto persuasivo de alta conversão com a oferta/chamada para ação. Centralizado, direto, emocional. Como um fechamento de venda irresistível.\n\nFORMATAÇÃO OBRIGATÓRIA DO BODY:\n- Separe cada parágrafo com duas quebras de linha (\\n\\n) dentro do campo "body" do JSON\n- Use **negrito** (markdown com dois asteriscos) nas frases de maior impacto emocional, insights-chave e palavras de autoridade\n- NUNCA retorne o body como um bloco único de texto corrido\n- O gancho de transição final (com ">") deve estar em seu próprio parágrafo separado`
-          : "";
-
-        const carouselPrompt = `Com base nesta estratégia, crie o conteúdo completo para um carrossel de ${cards} slides:
-
-ESTRATÉGIA:
-- Dor/Desejo/Tensão: ${strategy.pain_desire_tension}
-- Big Idea: ${strategy.big_idea}
-- Tipo de Lead: ${strategy.lead_type}
-- Ângulo: ${strategy.angle}
-- Promessa: ${strategy.promise}
-- Estratégia de CTA: ${strategy.cta_strategy}
-
-CONTEXTO ORIGINAL:
-- Ideia: ${idea}
-- Nicho: ${niche}
-- Tom: ${tone}
-- Objetivo: ${goal}
-- Audiência: ${awareness}
-- Estilo Visual: ${visual_style}
-${offer ? `- Oferta: ${offer}` : ""}
-
-Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_prompt — deixe como string vazia. NÃO inclua caption nem cta.${cardToneInstruction}`;
-
-        content = await callAI(ai_model, CAROUSEL_SYSTEM, carouselPrompt);
-        return new Response(JSON.stringify({ carousel: { ...content, big_idea: strategy.big_idea, lead_type: strategy.lead_type, angle: strategy.angle } }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    if (step === "caption") {
-      const strategy = approved_strategy;
-      const content = approved_content;
-      if (!strategy || !content) throw new Error("approved_strategy and approved_content are required for step=caption");
-
-      const contentSummary = content.slides
-        ? content.slides.map((s: any) => `Slide ${s.slide_number} [${s.role}]: "${s.title}" — ${s.body?.substring(0, 100)}`).join("\n")
-        : content.script || content.hook || "";
-
-      const captionPrompt = `Crie uma legenda e CTA para este conteúdo de ${format}:
-
-ESTRATÉGIA:
-- Big Idea: ${strategy.big_idea}
-- Ângulo: ${strategy.angle}
-- Promessa: ${strategy.promise}
-- Estratégia de CTA: ${strategy.cta_strategy}
-
-CONTEÚDO:
-${contentSummary}
-
-CONTEXTO:
-- Nicho: ${niche}
-- Tom: ${tone}
-- Objetivo: ${goal}
-${offer ? `- Oferta: ${offer}` : ""}
-
-Crie uma legenda envolvente com hashtags relevantes e um CTA claro.`;
-
-      const captionData = await callAI(ai_model, CAPTION_SYSTEM, captionPrompt);
-      return new Response(JSON.stringify({ caption: captionData.caption, cta: captionData.cta }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (step === "visual_prompts") {
-      const strategy = approved_strategy;
-      const slides = approved_slides;
-      if (!strategy || !slides) throw new Error("approved_strategy and approved_slides are required for step=visual_prompts");
-
-      const isThiagoStyle = visual_style === "carrosseis_thiago";
-      const slidesContext = slides
-        .map((s: any) => {
-          let line = `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`;
-          if (isThiagoStyle) {
-            const bodySnippet = (s.body || "").split("\n\n")[0]?.replace(/\*\*/g, "").substring(0, 120) || "";
-            line += ` | TEXTO PARA O CARD: Título="${s.title}" | Frase-chave="${bodySnippet}"`;
-          }
-          return line;
-        })
-        .join("\n");
-
-      const visualBaseRequest = `Crie prompts visuais para cada slide deste carrossel, baseados no conteúdo textual FINAL abaixo.
-
-ESTRATÉGIA:
-- Dor/Desejo/Tensão: ${strategy.pain_desire_tension}
-- Big Idea: ${strategy.big_idea}
-- Ângulo: ${strategy.angle}
-
-CONTEXTO:
-- Nicho: ${niche}
-- Tom: ${tone}
-- Estilo Visual desejado: ${visual_style}
-
-SLIDES (conteúdo final):
-${slidesContext}
-
-Para o ÚLTIMO slide (CTA), retorne visual_prompt como "none".
-Mantenha coerência visual entre todos os slides — mesma paleta, sujeito, ambiente.
-Adapte cada prompt ao emotional_goal e ao conteúdo específico de cada slide.${tone === "card" ? "\n\nIMPORTANTE — TOM CARD: NÃO inclua pessoas, rostos ou figuras humanas nos prompts visuais. Use objetos, metáforas visuais, cenários, texturas, padrões e elementos abstratos ou simbólicos." : ""}`;
-
-      const visualPromptRequest = isThiagoStyle
-        ? visualBaseRequest + `
-
-IMPORTANTE — ESTILO THIAGO:
-Cada visual_prompt deve descrever um CARD COMPLETO (1080x1440px, proporção 3:4 vertical) com:
-1. A imagem editorial de fundo (metafórica, dramática)
-2. O TEXTO EXATO do slide renderizado em tipografia grande e impactante
-3. Especifique quais palavras ficam em LARANJA (#E85D04)
-4. Inclua "THIAGO ALCÂNTARA" no topo como branding
-5. Varie os layouts entre os slides (image-top, text-overlay, text-only, etc.)
-O prompt deve conter as frases reais que a IA precisa renderizar no card.`
-        : visualBaseRequest;
-
-      const visualSystem = isThiagoStyle ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
-      const visualData = await callAI(ai_model, visualSystem, visualPromptRequest);
-      return new Response(JSON.stringify({ visual_prompts: visualData.visual_prompts }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // =====================
-    // FULL GENERATION (backward compatible, no step param)
-    // =====================
 
     const strategy = await callAI(ai_model, STRATEGY_SYSTEM, strategyPrompt);
 
@@ -714,14 +471,15 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_prompt — deixe como string vazia.${cardToneInstruction}`;
 
-      content = await callAI(ai_model, CAROUSEL_SYSTEM_FULL, carouselPrompt);
+      content = await callAI(ai_model, CAROUSEL_SYSTEM, carouselPrompt);
 
-      // Generate visual prompts
+      // --- Second step: generate visual prompts based on final copy ---
       const isThiagoStyle = visual_style === "carrosseis_thiago";
       const slidesContext = content.slides
         .map((s: any) => {
           let line = `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`;
           if (isThiagoStyle) {
+            // Extract the most impactful phrase from body for the card
             const bodySnippet = (s.body || "").split("\n\n")[0]?.replace(/\*\*/g, "").substring(0, 120) || "";
             line += ` | TEXTO PARA O CARD: Título="${s.title}" | Frase-chave="${bodySnippet}"`;
           }
@@ -792,8 +550,27 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
       };
     }
 
-    await logUsage("generate-content", creditCost);
-    const newBalance = await getBalance();
+    // Log usage
+    if (userId && creditCost > 0) {
+      await supabaseAdmin.from("usage_log").insert({
+        user_id: userId,
+        function_name: "generate-content",
+        ai_model: ai_model,
+        credits_used: creditCost,
+        metadata: { format, niche },
+      });
+    }
+
+    // Get updated balance
+    let newBalance: number | undefined;
+    if (userId) {
+      const { data: creditData } = await supabaseAdmin
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+      newBalance = creditData?.balance;
+    }
 
     return new Response(JSON.stringify({ ...result, credits_used: creditCost, balance: newBalance }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
