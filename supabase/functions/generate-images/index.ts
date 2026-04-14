@@ -49,9 +49,9 @@ async function generateSingleImageMiniMax(
       const data = await response.json();
       console.log(`MiniMax image raw response for prompt ${index}:`, JSON.stringify(data).substring(0, 500));
 
-      // With response_format: "url", MiniMax returns a URL
-      const imageUrl = data?.data?.image_list?.[0]?.image_url
-        || data?.data?.image_list?.[0]?.url
+      // With response_format: "url", MiniMax returns image_urls array
+      const imageUrl = data?.data?.image_urls?.[0]
+        || data?.data?.image_list?.[0]?.image_url
         || data?.data?.[0]?.url;
 
       // Also check for base64 as fallback
