@@ -1,4 +1,5 @@
-import { ImageIcon, RefreshCw, Loader2 } from "lucide-react";
+import { ImageIcon, RefreshCw, Loader2, Download } from "lucide-react";
+import { toast } from "sonner";
 
 interface ImagesTabProps {
   images: { label: string; url?: string }[];
