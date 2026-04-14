@@ -297,6 +297,8 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
   if (!content) throw new Error(`No content in MiniMax response. Keys: ${Object.keys(data).join(",")}`);
   
   if (typeof content === "object") return content;
+  // Strip markdown code fences that MiniMax sometimes wraps around JSON
+  content = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
   return JSON.parse(content);
 }
 
