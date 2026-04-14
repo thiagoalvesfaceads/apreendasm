@@ -106,8 +106,17 @@ export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSing
                 <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
               </div>
             )}
-            <div className="p-3">
+            <div className="p-3 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{img.label}</span>
+              {img.url && (
+                <button
+                  onClick={() => handleDownload(img.url!, img.label)}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  title="Baixar imagem"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         ))}
