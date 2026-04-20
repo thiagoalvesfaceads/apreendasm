@@ -3,12 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, ClipboardPaste, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins, Download } from "lucide-react";
+import { LogOut, Users, BookOpen, Zap, Copy, RefreshCw, Home, LayoutGrid, Bookmark, Check, Sparkles, Minus, Plus, Loader2, Coins, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { CreditBalance } from "@/components/CreditBalance";
-import { estimateCost, CREDIT_COSTS } from "@/hooks/useCredits";
-import { AI_MODEL_INFO, IMAGE_PROVIDER_LABELS, type ImageProvider } from "@/types/content";
+import { estimateCost } from "@/hooks/useCredits";
 import {
   Select,
   SelectContent,
@@ -35,11 +34,9 @@ const VISUAL_STYLE_OPTIONS = [
   ["clean realista", "Clean Realista"], ["editorial premium", "Editorial Premium"], ["humano e cotidiano", "Humano e Cotidiano"], ["dramático cinematográfico", "Dramático Cinemático"], ["minimalista sofisticado", "Minimalista Sofisticado"], ["carrosseis thiago", "Carrosséis Thiago"],
 ] as const;
 
-const AI_MODEL_OPTIONS = Object.entries(AI_MODEL_INFO).map(([key, info]) => {
-  const cost = CREDIT_COSTS["generate-content"][key as keyof typeof CREDIT_COSTS["generate-content"]];
-  const costLabel = cost === 0 ? "Grátis" : `${cost} créditos`;
-  return [key, info.label, costLabel] as const;
-});
+const TEXT_COST = 25;
+const IMAGE_COST = 80;
+const REGEN_COST = 8;
 
 interface FormState {
   idea: string;
@@ -52,21 +49,17 @@ interface FormState {
   cards: string;
   generateImages: boolean;
   visualStyle: string;
-  aiModel: string;
-  imageProvider: ImageProvider;
 }
 
 export default function ContentEngine() {
   const { isAdmin, signOut, user } = useAuth();
   const navigate = useNavigate();
-  
 
   const [form, setForm] = useState<FormState>({
     idea: "", format: "carrossel", goal: "descoberta",
     awareness: "frio", tone: "reflexivo", niche: "",
     offer: "", cards: "7", generateImages: false,
-    visualStyle: "editorial premium", aiModel: "gemini-flash-lite",
-    imageProvider: "gemini",
+    visualStyle: "editorial premium",
   });
 
   const [loading, setLoading] = useState(false);
@@ -78,10 +71,6 @@ export default function ContentEngine() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [regeneratingField, setRegeneratingField] = useState<string | null>(null);
-  const [mode, setMode] = useState<"generate" | "paste">("generate");
-  const [pasteJson, setPasteJson] = useState("");
-  const [pasteGenerateImages, setPasteGenerateImages] = useState(false);
-  const [pasteVisualStyle, setPasteVisualStyle] = useState("clean realista");
 
   // Restore state from sessionStorage when returning from Card Generator
   useEffect(() => {
@@ -134,7 +123,6 @@ export default function ContentEngine() {
           strategy: result.strategy,
           tone: TONE_MAP[form.tone] || form.tone,
           niche: form.niche,
-          ai_model: form.aiModel,
         },
       });
       if (fnError) throw new Error(fnError.message);
@@ -150,44 +138,6 @@ export default function ContentEngine() {
     }
   };
 
-  const handleLoadPasted = () => {
-    try {
-      const parsed = JSON.parse(pasteJson.trim());
-      if (!parsed.strategy || (!parsed.carousel && !parsed.reels)) {
-        setError("JSON inválido: precisa ter 'strategy' e 'carousel' ou 'reels'.");
-        return;
-      }
-      const detectedFormat = parsed.carousel ? "carrossel" : "reels";
-      set("format", detectedFormat);
-      setResult(parsed); setImages({}); setActiveTab("estrategia"); setError("");
-      toast.success("Conteúdo carregado com sucesso!");
-      if (pasteGenerateImages && parsed.carousel?.slides) {
-        const hasPrompts = parsed.carousel.slides.some((s: any) => s.visual_prompt);
-        if (hasPrompts) handleGenerateImagesForPaste(parsed.carousel.slides);
-      }
-    } catch { setError("JSON inválido. Verifique o formato e tente novamente."); }
-  };
-
-  const handleGenerateImagesForPaste = async (slides: any[]) => {
-    setLoadingImages(true);
-    const prompts = slides.map((s: any) => s.visual_prompt).filter(Boolean);
-    if (prompts.length === 0) { setLoadingImages(false); return; }
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("generate-images", {
-        body: { prompts, visual_style: VISUAL_MAP[pasteVisualStyle] || pasteVisualStyle },
-      });
-      if (fnError) throw new Error(fnError.message);
-      const urls: (string | null)[] = data?.urls || [];
-      const newImages: Record<number, string> = {};
-      slides.forEach((s: any, i: number) => { if (urls[i]) newImages[s.slide_number] = urls[i]!; });
-      setImages(newImages);
-      const count = Object.keys(newImages).length;
-      if (count > 0) toast.success(`${count} imagem(ns) gerada(s)!`);
-      else toast.warning("Não foi possível gerar imagens.");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao gerar imagens."); }
-    finally { setLoadingImages(false); }
-  };
-
   const handleGenerate = async () => {
     if (!form.idea.trim()) { setError("Digite uma ideia."); return; }
     setError(""); setLoading(true); setResult(null); setImages({}); setSaved(false);
@@ -197,7 +147,7 @@ export default function ContentEngine() {
         goal: GOAL_MAP[form.goal] || form.goal, awareness: AWARENESS_MAP[form.awareness] || form.awareness,
         tone: TONE_MAP[form.tone] || form.tone, niche: form.niche, offer: form.offer,
         cards: parseInt(form.cards), generate_images: false,
-        visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, ai_model: form.aiModel,
+        visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, ai_model: "minimax-m2",
       };
       const { data, error: fnError } = await supabase.functions.invoke("generate-content", { body });
       if (fnError) throw new Error(fnError.message);
@@ -205,7 +155,6 @@ export default function ContentEngine() {
         if (data.error === "RATE_LIMITED") throw new Error("Limite de requisições atingido. Aguarde e tente novamente.");
         if (data.error === "PAYMENT_REQUIRED") throw new Error("Créditos de IA esgotados.");
         if (data.error === "INSUFFICIENT_CREDITS") throw new Error("Créditos insuficientes. Recarregue seu saldo.");
-        if (data.error === "WELCOME_CREDITS_RESTRICTED") throw new Error(data.message || "Créditos de boas-vindas só podem ser usados para geração de texto com Gemini ou OpenAI.");
         throw new Error(data.error);
       }
       setResult(data); setActiveTab("estrategia");
@@ -229,7 +178,7 @@ export default function ContentEngine() {
     if (prompts.length === 0) { setLoadingImages(false); return; }
     try {
       const { data, error: fnError } = await supabase.functions.invoke("generate-images", {
-        body: { prompts, visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, image_provider: form.imageProvider },
+        body: { prompts, visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle },
       });
       if (fnError) throw new Error(fnError.message);
       const urls: (string | null)[] = data?.urls || [];
@@ -247,7 +196,7 @@ export default function ContentEngine() {
     setImages((prev) => ({ ...prev, [slide.slide_number]: "loading" }));
     try {
       const { data, error: fnError } = await supabase.functions.invoke("generate-images", {
-        body: { prompts: [slide.visual_prompt], visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle, image_provider: form.imageProvider },
+        body: { prompts: [slide.visual_prompt], visual_style: VISUAL_MAP[form.visualStyle] || form.visualStyle },
       });
       if (fnError) throw new Error(fnError.message);
       const url = data?.urls?.[0];
@@ -264,6 +213,9 @@ export default function ContentEngine() {
     estrategia: "Estratégia", reels: "Reels", carrossel: "Carrossel",
     legenda: "Legenda", prompts: "Prompts Visuais", imagens: "Imagens",
   };
+
+  const slidesCount = parseInt(form.cards) || 7;
+  const totalCost = TEXT_COST + (form.generateImages && form.format === "carrossel" ? slidesCount * IMAGE_COST : 0);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -312,20 +264,6 @@ export default function ContentEngine() {
         {/* Show form when no result and not loading */}
         {!result && !loading && (
           <>
-            {/* Mode tabs */}
-            <div className="flex justify-center mb-8">
-              <div className="inline-flex border border-border rounded-lg overflow-hidden">
-                <button onClick={() => setMode("generate")}
-                  className={`px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-colors ${mode === "generate" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}>
-                  <Zap className="w-4 h-4" /> Gerar
-                </button>
-                <button onClick={() => setMode("paste")}
-                  className={`px-5 py-2.5 text-sm font-medium flex items-center gap-2 transition-colors ${mode === "paste" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}>
-                  <ClipboardPaste className="w-4 h-4" /> Colar Conteúdo
-                </button>
-              </div>
-            </div>
-
             {/* Title */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
@@ -340,224 +278,143 @@ export default function ContentEngine() {
               </p>
             </div>
 
-            {mode === "generate" ? (
-              <div className="space-y-6">
-                {/* Ideia Bruta */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground/80">Ideia Bruta *</label>
-                  <textarea value={form.idea} onChange={(e) => set("idea", e.target.value)}
-                    placeholder="Descreva sua ideia, insight, conceito ou tema..."
-                    rows={4}
-                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50" />
-                </div>
-
-                {/* Formato + Objetivo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Formato *</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[["reels", "Reels"], ["carrossel", "Carrossel"]].map(([val, label]) => (
-                        <button key={val} type="button" onClick={() => set("format", val)}
-                          className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.format === val
-                            ? "bg-primary/15 border-primary/40 text-primary"
-                            : "bg-secondary border-border text-muted-foreground hover:border-primary/20"}`}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Objetivo *</label>
-                    <Select value={form.goal} onValueChange={(v) => set("goal", v)}>
-                      <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {GOAL_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Consciência + Tom */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Consciência da Audiência *</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[["frio", "Frio"], ["morno", "Morno"], ["quente", "Quente"]].map(([val, label]) => (
-                        <button key={val} type="button" onClick={() => set("awareness", val)}
-                          className={`px-3 py-2.5 rounded-lg border text-xs font-medium transition-all ${form.awareness === val
-                            ? "bg-primary/15 border-primary/40 text-primary"
-                            : "bg-secondary border-border text-muted-foreground hover:border-primary/20"}`}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Tom Principal *</label>
-                    <Select value={form.tone} onValueChange={(v) => set("tone", v)}>
-                      <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {TONE_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Nicho + Oferta */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Nicho / Contexto *</label>
-                    <input value={form.niche} onChange={(e) => set("niche", e.target.value)}
-                      placeholder="Ex: marketing digital, psicologia, fitness..."
-                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Oferta Relacionada <span className="text-muted-foreground">(opcional)</span></label>
-                    <input value={form.offer} onChange={(e) => set("offer", e.target.value)}
-                      placeholder="Ex: mentoria, curso, consultoria..."
-                      className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50" />
-                  </div>
-                </div>
-
-                {/* Cards count (carousel only) */}
-                {form.format === "carrossel" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Número de Cards</label>
-                    <div className="flex items-center gap-3">
-                      {["5", "6", "7", "8", "9", "10"].map((n) => (
-                        <button key={n} type="button" onClick={() => set("cards", n)}
-                          className={`w-10 h-10 rounded-lg border text-sm font-medium transition-all ${form.cards === n
-                            ? "bg-primary/15 border-primary/40 text-primary"
-                            : "bg-secondary border-border text-muted-foreground hover:border-primary/20"}`}>
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* AI Settings Card */}
-                <div className="border border-border rounded-xl p-5 space-y-5 bg-card">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Modelo de IA (Texto)</label>
-                    <Select value={form.aiModel} onValueChange={(v) => set("aiModel", v)}>
-                      <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {AI_MODEL_OPTIONS.map(([k, label, cost]) => <SelectItem key={k} value={k}>{label} — {cost}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="text-sm font-medium text-foreground/80">Gerar Imagens Automaticamente</label>
-                      <p className="text-xs text-muted-foreground mt-0.5">Gera visuais para cada slide do carrossel</p>
-                    </div>
-                    <Switch checked={form.generateImages} onCheckedChange={(v) => set("generateImages", v)} />
-                  </div>
-
-                  {form.generateImages && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground/80">Provider de Imagem</label>
-                      <Select value={form.imageProvider} onValueChange={(v) => set("imageProvider", v)}>
-                        <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {(Object.entries(IMAGE_PROVIDER_LABELS) as [ImageProvider, string][]).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>{v}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">80 créditos por imagem, independente do provider</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80">Estilo Visual</label>
-                    <Select value={form.visualStyle} onValueChange={(v) => set("visualStyle", v)}>
-                      <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {VISUAL_STYLE_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Cost estimation */}
-                {(() => {
-                  const cost = estimateCost(
-                    form.aiModel,
-                    form.generateImages && form.format === "carrossel",
-                    parseInt(form.cards) || 7
-                  );
-                  return cost > 0 ? (
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
-                      <Coins className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-foreground/80">
-                        Esta geração vai custar <strong className="text-primary">{cost} créditos</strong>
-                        {form.generateImages && form.format === "carrossel" && (
-                          <span className="text-muted-foreground"> (texto: {estimateCost(form.aiModel, false, 0)} + imagens: {(parseInt(form.cards) || 7) * 80})</span>
-                        )}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-sm">
-                      <Coins className="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span className="text-foreground/80">
-                        Geração de texto <strong className="text-emerald-500">gratuita</strong> com Google Gemini
-                        {form.generateImages && form.format === "carrossel" && (
-                          <span className="text-muted-foreground"> + imagens: <strong className="text-primary">{(parseInt(form.cards) || 7) * 80} créditos</strong></span>
-                        )}
-                      </span>
-                    </div>
-                  );
-                })()}
-
-                {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-3 text-sm text-destructive">{error}</div>}
-
-                {/* Submit */}
-                <Button onClick={handleGenerate} disabled={loading || !form.idea.trim()}
-                  className="w-full h-14 text-base font-semibold gap-2">
-                  <Zap className="w-5 h-5" /> Gerar Conteúdo MASTER
-                </Button>
+            <div className="space-y-6">
+              {/* Ideia Bruta */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground/80">Ideia Bruta *</label>
+                <textarea value={form.idea} onChange={(e) => set("idea", e.target.value)}
+                  placeholder="Descreva sua ideia, insight, conceito ou tema..."
+                  rows={4}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50" />
               </div>
-            ) : (
-              /* Paste mode */
-              <div className="space-y-6">
+
+              {/* Formato + Objetivo */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground/80">JSON do Conteúdo</label>
-                  <textarea value={pasteJson} onChange={(e) => setPasteJson(e.target.value)}
-                    placeholder="Cole aqui o JSON gerado pelo Claude..."
-                    rows={12}
-                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50" />
+                  <label className="text-sm font-medium text-foreground/80">Formato *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[["reels", "Reels"], ["carrossel", "Carrossel"]].map(([val, label]) => (
+                      <button key={val} type="button" onClick={() => set("format", val)}
+                        className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${form.format === val
+                          ? "bg-primary/15 border-primary/40 text-primary"
+                          : "bg-secondary border-border text-muted-foreground hover:border-primary/20"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground/80">Estilo Visual (para imagens)</label>
-                  <Select value={pasteVisualStyle} onValueChange={setPasteVisualStyle}>
+                  <label className="text-sm font-medium text-foreground/80">Objetivo *</label>
+                  <Select value={form.goal} onValueChange={(v) => set("goal", v)}>
+                    <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {GOAL_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Consciência + Tom */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground/80">Consciência da Audiência *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[["frio", "Frio"], ["morno", "Morno"], ["quente", "Quente"]].map(([val, label]) => (
+                      <button key={val} type="button" onClick={() => set("awareness", val)}
+                        className={`px-3 py-2.5 rounded-lg border text-xs font-medium transition-all ${form.awareness === val
+                          ? "bg-primary/15 border-primary/40 text-primary"
+                          : "bg-secondary border-border text-muted-foreground hover:border-primary/20"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground/80">Tom Principal *</label>
+                  <Select value={form.tone} onValueChange={(v) => set("tone", v)}>
+                    <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TONE_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Nicho + Oferta */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground/80">Nicho / Contexto *</label>
+                  <input value={form.niche} onChange={(e) => set("niche", e.target.value)}
+                    placeholder="Ex: marketing digital, psicologia, fitness..."
+                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground/80">Oferta Relacionada <span className="text-muted-foreground">(opcional)</span></label>
+                  <input value={form.offer} onChange={(e) => set("offer", e.target.value)}
+                    placeholder="Ex: mentoria, curso, consultoria..."
+                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground/50" />
+                </div>
+              </div>
+
+              {/* Cards count (carousel only) */}
+              {form.format === "carrossel" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground/80">Número de Cards</label>
+                  <div className="flex items-center gap-3">
+                    {["5", "6", "7", "8", "9", "10"].map((n) => (
+                      <button key={n} type="button" onClick={() => set("cards", n)}
+                        className={`w-10 h-10 rounded-lg border text-sm font-medium transition-all ${form.cards === n
+                          ? "bg-primary/15 border-primary/40 text-primary"
+                          : "bg-secondary border-border text-muted-foreground hover:border-primary/20"}`}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Image + Visual Style */}
+              <div className="border border-border rounded-xl p-5 space-y-5 bg-card">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-foreground/80">Gerar Imagens Automaticamente</label>
+                    <p className="text-xs text-muted-foreground mt-0.5">{IMAGE_COST} créditos por imagem (MiniMax)</p>
+                  </div>
+                  <Switch checked={form.generateImages} onCheckedChange={(v) => set("generateImages", v)} />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground/80">Estilo Visual</label>
+                  <Select value={form.visualStyle} onValueChange={(v) => set("visualStyle", v)}>
                     <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {VISUAL_STYLE_OPTIONS.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-foreground/80">Gerar imagens automaticamente</label>
-                    <p className="text-xs text-muted-foreground mt-0.5">Gera imagens ao carregar o conteúdo</p>
-                  </div>
-                  <Switch checked={pasteGenerateImages} onCheckedChange={setPasteGenerateImages} />
-                </div>
-
-                {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-3 text-sm text-destructive">{error}</div>}
-
-                <Button onClick={handleLoadPasted} disabled={!pasteJson.trim()} className="w-full h-14 text-base font-semibold gap-2">
-                  <ClipboardPaste className="w-5 h-5" /> Carregar Conteúdo
-                </Button>
               </div>
-            )}
+
+              {/* Cost estimation */}
+              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+                <Coins className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-foreground/80">
+                  Esta geração vai custar <strong className="text-primary">{totalCost} créditos</strong>
+                  {form.generateImages && form.format === "carrossel" && (
+                    <span className="text-muted-foreground"> (texto: {TEXT_COST} + imagens: {slidesCount * IMAGE_COST})</span>
+                  )}
+                </span>
+              </div>
+
+              {error && <div className="bg-destructive/10 border border-destructive/30 rounded-lg px-4 py-3 text-sm text-destructive">{error}</div>}
+
+              {/* Submit */}
+              <Button onClick={handleGenerate} disabled={loading || !form.idea.trim()}
+                className="w-full h-14 text-base font-semibold gap-2">
+                <Zap className="w-5 h-5" /> Gerar Conteúdo MASTER · {totalCost} cr
+              </Button>
+            </div>
           </>
         )}
 
@@ -692,7 +549,7 @@ export default function ContentEngine() {
                           onClick={() => handleRegenerateField(slide.slide_number, "title", "regenerate")}
                         >
                           {regeneratingField === `${slide.slide_number}-title-regenerate` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                          Regerar
+                          Regerar · {REGEN_COST} cr
                         </Button>
                       </div>
                       <input
@@ -702,7 +559,7 @@ export default function ContentEngine() {
                       />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Corpo</label>
                         <Button
                           variant="ghost" size="sm"
@@ -711,7 +568,7 @@ export default function ContentEngine() {
                           onClick={() => handleRegenerateField(slide.slide_number, "body", "regenerate")}
                         >
                           {regeneratingField === `${slide.slide_number}-body-regenerate` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                          Regerar
+                          Regerar · {REGEN_COST} cr
                         </Button>
                         <Button
                           variant="ghost" size="sm"
@@ -720,7 +577,7 @@ export default function ContentEngine() {
                           onClick={() => handleRegenerateField(slide.slide_number, "body", "shorten")}
                         >
                           {regeneratingField === `${slide.slide_number}-body-shorten` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Minus className="w-3 h-3" />}
-                          Encurtar
+                          Encurtar · {REGEN_COST} cr
                         </Button>
                         <Button
                           variant="ghost" size="sm"
@@ -729,7 +586,7 @@ export default function ContentEngine() {
                           onClick={() => handleRegenerateField(slide.slide_number, "body", "lengthen")}
                         >
                           {regeneratingField === `${slide.slide_number}-body-lengthen` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                          Alongar
+                          Alongar · {REGEN_COST} cr
                         </Button>
                       </div>
                       <textarea
@@ -749,7 +606,7 @@ export default function ContentEngine() {
                           onClick={() => handleRegenerateField(slide.slide_number, "visual_prompt", "regenerate")}
                         >
                           {regeneratingField === `${slide.slide_number}-visual_prompt-regenerate` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                          Regerar
+                          Regerar · {REGEN_COST} cr
                         </Button>
                       </div>
                       <textarea
@@ -878,7 +735,7 @@ export default function ContentEngine() {
                 )}
                 {result.carousel?.slides && (
                   <Button variant="secondary" size="sm" onClick={() => handleGenerateImages(result.carousel.slides)} className="gap-1.5 text-xs">
-                    <RefreshCw className="w-3.5 h-3.5" /> Gerar Todas
+                    <RefreshCw className="w-3.5 h-3.5" /> Gerar Todas · {result.carousel.slides.length * IMAGE_COST} cr
                   </Button>
                 )}
               </div>
@@ -903,7 +760,7 @@ export default function ContentEngine() {
                         <div className="text-xs text-muted-foreground mb-2 line-clamp-2">{slide.title}</div>
                         <div className="flex gap-1">
                           <Button variant="secondary" size="sm" className="flex-1 gap-1 h-7 text-xs" onClick={() => handleRegenerateSlide(slide)}>
-                            <RefreshCw className="w-3 h-3" /> {img && img !== "loading" && img !== "error" ? "Regenerar" : "Gerar"}
+                            <RefreshCw className="w-3 h-3" /> {img && img !== "loading" && img !== "error" ? `Regenerar · ${IMAGE_COST} cr` : `Gerar · ${IMAGE_COST} cr`}
                           </Button>
                           {img && img !== "loading" && img !== "error" && (
                             <Button variant="secondary" size="sm" className="h-7 w-7 p-0" onClick={async () => {

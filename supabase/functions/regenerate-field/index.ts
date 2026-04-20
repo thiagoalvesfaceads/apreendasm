@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const ANTI_CONTAMINATION = `
-REGRA CRÍTICA: Responda APENAS com o texto solicitado. 
+REGRA CRÍTICA: Responda APENAS com o texto solicitado.
 NÃO inclua NENHUMA label, metadado ou estrutura do prompt como: "SLIDE #", "Papel:", "Título atual:", "Corpo atual:", "Objetivo emocional:", "Prompt visual:", "ESTRATÉGIA", "Big Idea:", "Dor/Desejo/Tensão:", "Promessa:", "Nicho:", "Tom:", etc.
 Sua resposta deve conter SOMENTE o texto final, sem aspas, sem explicação, sem labels.`;
 
@@ -61,121 +61,9 @@ ${ANTI_CONTAMINATION}`,
   },
 };
 
-// --- Model config ---
+// --- MiniMax-only AI caller ---
 
-interface ModelConfig {
-  provider: "google" | "openai" | "anthropic" | "minimax";
-  apiModel: string;
-  cost: number;
-}
-
-const MODEL_CONFIG: Record<string, ModelConfig> = {
-  "gemini-flash-lite": { provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
-  "gemini-flash": { provider: "google", apiModel: "gemini-2.5-flash", cost: 5 },
-  "gemini-pro": { provider: "google", apiModel: "gemini-2.5-pro", cost: 30 },
-  "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 10 },
-  "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 40 },
-  "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 50 },
-  "minimax-m2": { provider: "minimax", apiModel: "MiniMax-M2.7", cost: 5 },
-};
-
-// --- Provider-specific AI callers ---
-
-async function callGoogleAI(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
-    
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: userPrompt }] }],
-          systemInstruction: { parts: [{ text: system }] },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const status = response.status;
-      const body = await response.text();
-      if (status === 429 && attempt === 0) {
-        console.warn("Google AI rate limited, retrying in 3s...");
-        continue;
-      }
-      if (status === 429) throw new Error("RATE_LIMITED");
-      throw new Error(`Google AI error [${status}]: ${body}`);
-    }
-
-    const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!content) throw new Error("No content in Google AI response");
-    return content.trim();
-  }
-  throw new Error("RATE_LIMITED");
-}
-
-async function callOpenAI(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.8,
-    }),
-  });
-
-  if (!response.ok) {
-    const status = response.status;
-    const body = await response.text();
-    if (status === 429) throw new Error("RATE_LIMITED");
-    throw new Error(`OpenAI error [${status}]: ${body}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("No content in OpenAI response");
-  return content.trim();
-}
-
-async function callAnthropic(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const status = response.status;
-    const body = await response.text();
-    if (status === 429) throw new Error("RATE_LIMITED");
-    throw new Error(`Anthropic error [${status}]: ${body}`);
-  }
-
-  const data = await response.json();
-  const text = data.content?.[0]?.text;
-  if (!text) throw new Error("No content in Anthropic response");
-  return text.trim();
-}
-
-async function callMiniMax(apiKey: string, system: string, userPrompt: string, model: string): Promise<string> {
+async function callMiniMax(apiKey: string, system: string, userPrompt: string): Promise<string> {
   const response = await fetch("https://api.minimax.io/v1/text/chatcompletion_v2", {
     method: "POST",
     headers: {
@@ -183,7 +71,7 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model: "MiniMax-M2.7",
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -201,56 +89,28 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
 
   const data = await response.json();
   console.log("MiniMax raw response:", JSON.stringify(data).substring(0, 2000));
-  
+
   let content = data.choices?.[0]?.message?.content;
   if (!content) {
     content = data.reply || data.output;
   }
   if (!content) throw new Error(`No content in MiniMax response. Keys: ${Object.keys(data).join(",")}`);
-  
+
   if (typeof content === "object") return JSON.stringify(content);
-  // Strip markdown code fences that MiniMax sometimes wraps around responses
   content = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
   return content;
 }
 
-// --- Router ---
-
-async function callAI(aiModel: string, system: string, userPrompt: string): Promise<string> {
-  const config = MODEL_CONFIG[aiModel];
-  if (!config) throw new Error(`Modelo desconhecido: ${aiModel}`);
-  
-  switch (config.provider) {
-    case "google": {
-      const key = Deno.env.get("GOOGLE_AI_API_KEY");
-      if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada.");
-      return callGoogleAI(key, system, userPrompt, config.apiModel);
-    }
-    case "openai": {
-      const key = Deno.env.get("OPENAI_API_KEY");
-      if (!key) throw new Error("OPENAI_API_KEY não configurada.");
-      return callOpenAI(key, system, userPrompt, config.apiModel);
-    }
-    case "anthropic": {
-      const key = Deno.env.get("ANTHROPIC_API_KEY");
-      if (!key) throw new Error("ANTHROPIC_API_KEY não configurada.");
-      return callAnthropic(key, system, userPrompt, config.apiModel);
-    }
-    case "minimax": {
-      const key = Deno.env.get("MINIMAX_API_KEY");
-      if (!key) throw new Error("MINIMAX_API_KEY não configurada.");
-      return callMiniMax(key, system, userPrompt, config.apiModel);
-    }
-    default:
-      throw new Error(`Provider desconhecido: ${config.provider}`);
-  }
+async function callAI(system: string, userPrompt: string): Promise<string> {
+  const key = Deno.env.get("MINIMAX_API_KEY");
+  if (!key) throw new Error("MINIMAX_API_KEY não configurada.");
+  return callMiniMax(key, system, userPrompt);
 }
 
 function buildUserPrompt(field: string, action: string, slide: any, strategy: any, tone: string, niche: string): string {
   const isCard = tone === "card";
   const isBodyAction = field === "body";
 
-  // For body shorten/lengthen, use delimited structure to prevent metadata contamination
   if (isBodyAction && (action === "shorten" || action === "lengthen")) {
     const actionLabel = action === "shorten" ? "ENCURTAR" : "EXPANDIR";
     let prompt = `---TEXTO A ${actionLabel}---
@@ -270,7 +130,6 @@ Contexto auxiliar (NÃO incluir na resposta, use apenas como referência de tom 
     return prompt;
   }
 
-  // For regenerate actions, also use clear separation
   let prompt = `Contexto auxiliar (NÃO incluir na resposta, use apenas como referência):
 - Slide #${slide.slide_number}, Papel: ${slide.role}
 - Título: ${slide.title}
@@ -309,17 +168,16 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     const { data: { user: authUser } } = await createClient(
       supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!
     ).auth.getUser(token);
     const userId = authUser?.id;
 
-    const { field, action, slide, strategy, tone, niche, ai_model = "gemini-flash-lite" } = await req.json();
+    const { field, action, slide, strategy, tone, niche } = await req.json();
 
     const creditCost = 8; // flat cost for regeneration
 
-    // Check if user is admin (admins have unlimited credits)
     let isAdmin = false;
     if (userId) {
       const { data: roleData } = await supabaseAdmin
@@ -330,7 +188,7 @@ serve(async (req) => {
         .maybeSingle();
       isAdmin = !!roleData;
     }
-    
+
     // Block regeneration for welcome-only users (no purchases)
     if (userId && !isAdmin) {
       const { data: purchaseData } = await supabaseAdmin
@@ -376,31 +234,28 @@ serve(async (req) => {
       });
     }
 
-    // For card tone, always append format rules to body system prompts
     if (tone === "card" && field === "body") {
       systemPrompt += `\n\n${FORMAT_RULES_CARD}`;
     }
 
     const userPrompt = buildUserPrompt(field, action, slide, strategy, tone || "", niche || "");
 
-    let value = await callAI(ai_model, systemPrompt, userPrompt);
+    let value = await callAI(systemPrompt, userPrompt);
 
-    // For shorten action, verify the result is actually shorter; retry once if not
     if (action === "shorten" && field === "body" && slide?.body) {
       const originalLen = slide.body.trim().length;
       if (value.trim().length >= originalLen) {
         console.warn(`Shorten did not reduce text (${originalLen} -> ${value.trim().length}), retrying...`);
         const retryPrompt = `O texto abaixo DEVE ser encurtado. A versão anterior que você gerou tinha ${value.trim().length} caracteres, mas o original tem ${originalLen}. Você DEVE reduzir para no máximo ${Math.round(originalLen * 0.7)} caracteres.\n\n${userPrompt}`;
-        value = await callAI(ai_model, systemPrompt, retryPrompt);
+        value = await callAI(systemPrompt, retryPrompt);
       }
     }
 
-    // Log usage
     if (userId && creditCost > 0) {
       await supabaseAdmin.from("usage_log").insert({
         user_id: userId,
         function_name: "regenerate-field",
-        ai_model: ai_model,
+        ai_model: "minimax-m2",
         credits_used: creditCost,
         metadata: { field, action },
       });

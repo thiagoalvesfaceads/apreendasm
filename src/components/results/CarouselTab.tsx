@@ -57,9 +57,11 @@ export function CarouselTab({ carousel, onRegenerateSlide }: CarouselTabProps) {
               {onRegenerateSlide && (
                 <button
                   onClick={() => onRegenerateSlide(slide.slide_number)}
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 text-[10px]"
+                  title="Regenerar imagem · 80 cr"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
+                  <span>· 80 cr</span>
                 </button>
               )}
             </div>

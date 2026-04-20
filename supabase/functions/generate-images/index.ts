@@ -49,12 +49,10 @@ async function generateSingleImageMiniMax(
       const data = await response.json();
       console.log(`MiniMax image raw response for prompt ${index}:`, JSON.stringify(data).substring(0, 500));
 
-      // With response_format: "url", MiniMax returns image_urls array
       const imageUrl = data?.data?.image_urls?.[0]
         || data?.data?.image_list?.[0]?.image_url
         || data?.data?.[0]?.url;
 
-      // Also check for base64 as fallback
       const imageData = data?.data?.image_list?.[0]?.image_base64
         || data?.data?.[0]?.b64_json;
 
@@ -113,134 +111,6 @@ async function generateSingleImageMiniMax(
   return null;
 }
 
-async function generateSingleImage(
-  prompt: string,
-  index: number,
-  visual_style: string | undefined,
-  apiKey: string,
-  supabase: any,
-  timestamp: number,
-): Promise<string | null> {
-  const isThiago = visual_style === "carrosseis_thiago";
-  if (isThiago) {
-    // For Thiago style, the prompt already contains full card instructions with text
-    const fullPrompt = `Create a complete Instagram card design (1080x1440px, aspect ratio 3:4, vertical/portrait orientation). ${prompt}. Render ALL text exactly as specified — large, bold, legible sans-serif display typography. Text in the specified colors (white, black, or orange #E85D04). The typography must be sharp, clean, and perfectly readable. Professional graphic design quality.`;
-    // Use the same generation logic below
-    for (let attempt = 0; attempt < 2; attempt++) {
-      if (attempt > 0) await delay(1500);
-      try {
-        const aiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: fullPrompt }] }],
-              generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-            }),
-          }
-        );
-        if (!aiResponse.ok) {
-          const status = aiResponse.status;
-          const text = await aiResponse.text();
-          console.error(`Google AI error for prompt ${index} (attempt ${attempt}):`, status, text);
-          if (status === 429) break;
-          continue;
-        }
-        const data = await aiResponse.json();
-        const parts = data.candidates?.[0]?.content?.parts || [];
-        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
-        if (!imagePart) {
-          console.warn(`No image in response for prompt ${index} (attempt ${attempt}), retrying...`);
-          continue;
-        }
-        const base64 = imagePart.inlineData.data;
-        const mimeType = imagePart.inlineData.mimeType;
-        const ext = mimeType === "image/jpeg" ? "jpg" : "png";
-        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-        const filePath = `${timestamp}_${index}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("generated-images")
-          .upload(filePath, bytes, { contentType: mimeType, upsert: true });
-        if (uploadError) {
-          console.error(`Upload error for prompt ${index}:`, uploadError);
-          return null;
-        }
-        const { data: publicUrl } = supabase.storage
-          .from("generated-images")
-          .getPublicUrl(filePath);
-        return publicUrl.publicUrl;
-      } catch (err) {
-        console.error(`Error processing prompt ${index} (attempt ${attempt}):`, err);
-      }
-    }
-    return null;
-  }
-
-  const styleHint = visual_style ? ` Style: ${visual_style}.` : "";
-  const fullPrompt = `Generate an image: ${prompt}.${styleHint} High quality, professional, suitable for Instagram carousel. Do not include any text in the image.`;
-
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await delay(1500);
-
-    try {
-      const aiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: fullPrompt }] }],
-            generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-          }),
-        }
-      );
-
-      if (!aiResponse.ok) {
-        const status = aiResponse.status;
-        const text = await aiResponse.text();
-        console.error(`Google AI error for prompt ${index} (attempt ${attempt}):`, status, text);
-        if (status === 429) break;
-        continue;
-      }
-
-      const data = await aiResponse.json();
-      const parts = data.candidates?.[0]?.content?.parts || [];
-      const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith("image/"));
-
-      if (!imagePart) {
-        console.warn(`No image in response for prompt ${index} (attempt ${attempt}), retrying...`);
-        continue;
-      }
-
-      const base64 = imagePart.inlineData.data;
-      const mimeType = imagePart.inlineData.mimeType;
-      const ext = mimeType === "image/jpeg" ? "jpg" : "png";
-      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-
-      const filePath = `${timestamp}_${index}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("generated-images")
-        .upload(filePath, bytes, { contentType: mimeType, upsert: true });
-
-      if (uploadError) {
-        console.error(`Upload error for prompt ${index}:`, uploadError);
-        return null;
-      }
-
-      const { data: publicUrl } = supabase.storage
-        .from("generated-images")
-        .getPublicUrl(filePath);
-
-      return publicUrl.publicUrl;
-    } catch (err) {
-      console.error(`Error processing prompt ${index} (attempt ${attempt}):`, err);
-    }
-  }
-
-  return null;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -270,7 +140,7 @@ serve(async (req) => {
     // --- Credit check ---
     const COST_PER_IMAGE = 80;
     const totalCost = prompts.length * COST_PER_IMAGE;
-    
+
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     const { data: { user: authUser } } = await createClient(
@@ -278,7 +148,6 @@ serve(async (req) => {
     ).auth.getUser(token);
     const userId = authUser?.id;
 
-    // Check if user is admin (admins have unlimited credits)
     let isAdmin = false;
     if (userId) {
       const { data: roleData } = await supabase

@@ -1,6 +1,8 @@
 import { ImageIcon, RefreshCw, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 
+const IMAGE_COST = 80;
+
 interface ImagesTabProps {
   images: { label: string; url?: string }[];
   isLoading?: boolean;
@@ -10,6 +12,7 @@ interface ImagesTabProps {
 
 export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSingle }: ImagesTabProps) {
   const hasAnyImages = images.some((img) => img.url);
+  const totalCost = images.length * IMAGE_COST;
 
   const handleDownload = async (url: string, label: string) => {
     try {
@@ -58,7 +61,7 @@ export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSing
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
-            Gerar Imagens
+            Gerar Imagens · {totalCost} cr
           </button>
         )}
       </div>
@@ -74,7 +77,7 @@ export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSing
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Regenerar todas
+            Regenerar todas · {totalCost} cr
           </button>
         )}
       </div>
@@ -89,6 +92,7 @@ export function ImagesTab({ images, isLoading, onRegenerateAll, onRegenerateSing
                     <button
                       onClick={() => onRegenerateSingle(i)}
                       className="w-8 h-8 rounded-lg bg-background/80 backdrop-blur flex items-center justify-center"
+                      title={`Regenerar · ${IMAGE_COST} cr`}
                     >
                       <RefreshCw className="w-3.5 h-3.5 text-foreground" />
                     </button>
