@@ -71,8 +71,8 @@ const Library = () => {
         cards: 7,
         generate_images: false,
         visual_style: "clean_realistic" as const,
-        ai_provider: "google" as const,
-        ai_model: "gemini-flash-lite" as const,
+        ai_provider: "minimax" as const,
+        ai_model: "minimax-m2" as const,
       },
     };
     return (

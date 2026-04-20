@@ -141,127 +141,9 @@ Responda APENAS com JSON válido no formato:
   ]
 }`;
 
-// --- Model config ---
+// --- MiniMax-only AI caller ---
 
-interface ModelConfig {
-  provider: "google" | "openai" | "anthropic" | "minimax";
-  apiModel: string;
-  cost: number;
-}
-
-const MODEL_CONFIG: Record<string, ModelConfig> = {
-  "gemini-flash-lite": { provider: "google", apiModel: "gemini-2.5-flash-lite", cost: 0 },
-  "gemini-flash": { provider: "google", apiModel: "gemini-2.5-flash", cost: 20 },
-  "gemini-pro": { provider: "google", apiModel: "gemini-2.5-pro", cost: 60 },
-  "gpt-4o-mini": { provider: "openai", apiModel: "gpt-4o-mini", cost: 15 },
-  "gpt-4o": { provider: "openai", apiModel: "gpt-4o", cost: 70 },
-  "claude-sonnet": { provider: "anthropic", apiModel: "claude-sonnet-4-20250514", cost: 90 },
-  "minimax-m2": { provider: "minimax", apiModel: "MiniMax-M2.7", cost: 25 },
-};
-
-// --- Provider-specific AI callers ---
-
-async function callGoogleAI(apiKey: string, system: string, userPrompt: string, model: string) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
-    
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: userPrompt }] }],
-          systemInstruction: { parts: [{ text: system }] },
-          generationConfig: { responseMimeType: "application/json" },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const status = response.status;
-      const body = await response.text();
-      if (status === 429 && attempt === 0) {
-        console.warn("Google AI rate limited, retrying in 3s...");
-        continue;
-      }
-      if (status === 429) throw new Error("RATE_LIMITED");
-      throw new Error(`Google AI error [${status}]: ${body}`);
-    }
-
-    const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!content) throw new Error("No content in Google AI response");
-    return JSON.parse(content);
-  }
-  throw new Error("RATE_LIMITED");
-}
-
-async function callOpenAI(apiKey: string, system: string, userPrompt: string, model: string) {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.8,
-    }),
-  });
-
-  if (!response.ok) {
-    const status = response.status;
-    const body = await response.text();
-    if (status === 429) throw new Error("RATE_LIMITED");
-    throw new Error(`OpenAI error [${status}]: ${body}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("No content in OpenAI response");
-  return JSON.parse(content);
-}
-
-async function callAnthropic(apiKey: string, system: string, userPrompt: string, model: string) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      system,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const status = response.status;
-    const body = await response.text();
-    if (status === 429) throw new Error("RATE_LIMITED");
-    throw new Error(`Anthropic error [${status}]: ${body}`);
-  }
-
-  const data = await response.json();
-  const text = data.content?.[0]?.text;
-  if (!text) throw new Error("No content in Anthropic response");
-  
-  // Extract JSON from potential markdown code blocks
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const jsonStr = jsonMatch ? jsonMatch[1].trim() : text.trim();
-  return JSON.parse(jsonStr);
-}
-
-async function callMiniMax(apiKey: string, system: string, userPrompt: string, model: string) {
+async function callMiniMax(apiKey: string, system: string, userPrompt: string) {
   const response = await fetch("https://api.minimax.io/v1/text/chatcompletion_v2", {
     method: "POST",
     headers: {
@@ -269,7 +151,7 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model: "MiniMax-M2.7",
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -288,51 +170,25 @@ async function callMiniMax(apiKey: string, system: string, userPrompt: string, m
 
   const data = await response.json();
   console.log("MiniMax raw response:", JSON.stringify(data).substring(0, 2000));
-  
+
   let content = data.choices?.[0]?.message?.content;
   if (!content) {
-    // Some MiniMax models return in data.reply or data.output
     content = data.reply || data.output;
   }
   if (!content) throw new Error(`No content in MiniMax response. Keys: ${Object.keys(data).join(",")}`);
-  
+
   if (typeof content === "object") return content;
-  // Strip markdown code fences that MiniMax sometimes wraps around JSON
   content = content.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
   return JSON.parse(content);
 }
 
-// --- Router ---
-
-async function callAI(aiModel: string, system: string, userPrompt: string): Promise<any> {
-  const config = MODEL_CONFIG[aiModel];
-  if (!config) throw new Error(`Modelo desconhecido: ${aiModel}`);
-  
-  switch (config.provider) {
-    case "google": {
-      const key = Deno.env.get("GOOGLE_AI_API_KEY");
-      if (!key) throw new Error("GOOGLE_AI_API_KEY não configurada. Adicione nas configurações.");
-      return callGoogleAI(key, system, userPrompt, config.apiModel);
-    }
-    case "openai": {
-      const key = Deno.env.get("OPENAI_API_KEY");
-      if (!key) throw new Error("OPENAI_API_KEY não configurada. Adicione nas configurações.");
-      return callOpenAI(key, system, userPrompt, config.apiModel);
-    }
-    case "anthropic": {
-      const key = Deno.env.get("ANTHROPIC_API_KEY");
-      if (!key) throw new Error("ANTHROPIC_API_KEY não configurada. Adicione nas configurações.");
-      return callAnthropic(key, system, userPrompt, config.apiModel);
-    }
-    case "minimax": {
-      const key = Deno.env.get("MINIMAX_API_KEY");
-      if (!key) throw new Error("MINIMAX_API_KEY não configurada. Adicione nas configurações.");
-      return callMiniMax(key, system, userPrompt, config.apiModel);
-    }
-    default:
-      throw new Error(`Provider desconhecido: ${config.provider}`);
-  }
+async function callAI(system: string, userPrompt: string): Promise<any> {
+  const key = Deno.env.get("MINIMAX_API_KEY");
+  if (!key) throw new Error("MINIMAX_API_KEY não configurada. Adicione nas configurações.");
+  return callMiniMax(key, system, userPrompt);
 }
+
+const CREDIT_COST = 25;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -346,25 +202,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Decode user from JWT
-    const { data: { user: authUser }, error: authError } = await createClient(
+    const { data: { user: authUser } } = await createClient(
       supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!
     ).auth.getUser(token);
-    
+
     const userId = authUser?.id;
 
     const input = await req.json();
-    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style, ai_model = "gemini-flash-lite" } = input;
+    const { idea, format, goal, awareness, tone, niche, offer, cards, visual_style } = input;
 
-    const modelConfig = MODEL_CONFIG[ai_model];
-    if (!modelConfig) {
-      return new Response(JSON.stringify({ error: `Modelo desconhecido: ${ai_model}` }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const creditCost = modelConfig.cost;
-
-    // Check if user is admin (admins have unlimited credits)
     let isAdmin = false;
     if (userId) {
       const { data: roleData } = await supabaseAdmin
@@ -375,27 +221,11 @@ serve(async (req) => {
         .maybeSingle();
       isAdmin = !!roleData;
     }
-    
-    // Block Claude for welcome-only users (no purchases)
-    if (userId && !isAdmin && modelConfig.provider === "anthropic") {
-      const { data: purchaseData } = await supabaseAdmin
-        .from("payments")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("status", "confirmed")
-        .limit(1);
-      if (!purchaseData || purchaseData.length === 0) {
-        return new Response(
-          JSON.stringify({ error: "WELCOME_CREDITS_RESTRICTED", message: "Créditos de boas-vindas só podem ser usados com modelos Gemini ou OpenAI. Adquira um pacote para desbloquear todos os modelos." }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
 
-    if (creditCost > 0 && userId && !isAdmin) {
+    if (CREDIT_COST > 0 && userId && !isAdmin) {
       const { error: debitError } = await supabaseAdmin.rpc("debit_credits", {
         p_user_id: userId,
-        p_amount: creditCost,
+        p_amount: CREDIT_COST,
       });
       if (debitError) {
         const isInsufficient = debitError.message?.includes("INSUFFICIENT_CREDITS");
@@ -420,7 +250,7 @@ Considere o nível de consciência da audiência (${awareness}) para calibrar a 
 O objetivo é ${goal}, então a estratégia deve maximizar esse resultado.
 O tom principal deve ser ${tone}.`;
 
-    const strategy = await callAI(ai_model, STRATEGY_SYSTEM, strategyPrompt);
+    const strategy = await callAI(STRATEGY_SYSTEM, strategyPrompt);
 
     let content;
     if (format === "reels") {
@@ -444,7 +274,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie um roteiro envolvente seguindo a estrutura Hook > Contexto > Conflito > Conexão > CTA.`;
 
-      content = await callAI(ai_model, REELS_SYSTEM, reelsPrompt);
+      content = await callAI(REELS_SYSTEM, reelsPrompt);
     } else {
       const cardToneInstruction = tone === "card"
         ? `\n\nINSTRUÇÃO ESPECIAL — TOM "CARD":\nCada slide deve ter um body denso e de impacto. Use storytelling, frases de impacto e progressão emocional. O estilo é de posts de autoridade no Instagram — como se cada card fosse um micro-post completo. Cada parágrafo deve ter peso próprio. Não use frases genéricas ou superficiais. Escreva como Alfredo Soares, Gary Vee ou grandes criadores de conteúdo de autoridade. Cada card deve provocar reflexão profunda.\n\nTAMANHO DO BODY:\n- A MAIORIA dos slides deve ter no máximo 2 parágrafos densos\n- Apenas o slide central (se 5 slides → slide 3, se 7 slides → slide 4, se número par de slides → o mais próximo do último) pode ter até 3 parágrafos\n- O último slide (CTA) pode ter até 3 parágrafos\n- O gancho de transição (">") conta como parágrafo separado\n- NUNCA exceda esses limites. Priorize impacto por frase, não volume de texto.\n\nGANCHO DE TRANSIÇÃO: Cada card (EXCETO o último) DEVE terminar com uma frase-gancho curta seguida de ">" para instigar a leitura do próximo card. Exemplos: "te explico o seguinte >", "e é aqui que muda tudo >", "olha o que acontece >", "mas tem um detalhe >", "e o melhor ainda vem >". A frase deve ser natural e criar tensão/curiosidade.\n\nÚLTIMO CARD (CTA): O último slide deve ser puramente textual, SEM imagem. Defina o visual_prompt como "none". O body deve ser um texto persuasivo de alta conversão com a oferta/chamada para ação. Centralizado, direto, emocional. Como um fechamento de venda irresistível.\n\nFORMATAÇÃO OBRIGATÓRIA DO BODY:\n- Separe cada parágrafo com duas quebras de linha (\\n\\n) dentro do campo "body" do JSON\n- Use **negrito** (markdown com dois asteriscos) nas frases de maior impacto emocional, insights-chave e palavras de autoridade\n- NUNCA retorne o body como um bloco único de texto corrido\n- O gancho de transição final (com ">") deve estar em seu próprio parágrafo separado`
@@ -471,7 +301,7 @@ ${offer ? `- Oferta: ${offer}` : ""}
 
 Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_prompt — deixe como string vazia.${cardToneInstruction}`;
 
-      content = await callAI(ai_model, CAROUSEL_SYSTEM, carouselPrompt);
+      content = await callAI(CAROUSEL_SYSTEM, carouselPrompt);
 
       // --- Second step: generate visual prompts based on final copy ---
       const isThiagoStyle = visual_style === "carrosseis_thiago";
@@ -479,7 +309,6 @@ Crie exatamente ${cards} slides seguindo a estrutura definida. NÃO crie visual_
         .map((s: any) => {
           let line = `Slide ${s.slide_number} [${s.role}]: Título: "${s.title}" | Body: "${s.body}" | Objetivo emocional: "${s.emotional_goal}"`;
           if (isThiagoStyle) {
-            // Extract the most impactful phrase from body for the card
             const bodySnippet = (s.body || "").split("\n\n")[0]?.replace(/\*\*/g, "").substring(0, 120) || "";
             line += ` | TEXTO PARA O CARD: Título="${s.title}" | Frase-chave="${bodySnippet}"`;
           }
@@ -519,9 +348,9 @@ Cada visual_prompt deve descrever um CARD COMPLETO (1080x1440px, proporção 3:4
 O prompt deve conter as frases reais que a IA precisa renderizar no card.`
         : visualBaseRequest;
 
-      const visualSystem = visual_style === "carrosseis_thiago" ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
+      const visualSystem = isThiagoStyle ? VISUAL_PROMPT_THIAGO_SYSTEM : VISUAL_PROMPT_SYSTEM;
       try {
-        const visualData = await callAI(ai_model, visualSystem, visualPromptRequest);
+        const visualData = await callAI(visualSystem, visualPromptRequest);
         if (visualData?.visual_prompts && Array.isArray(visualData.visual_prompts)) {
           content.slides = content.slides.map((slide: any) => {
             const vp = visualData.visual_prompts.find((v: any) => v.slide_number === slide.slide_number);
@@ -550,18 +379,16 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
       };
     }
 
-    // Log usage
-    if (userId && creditCost > 0) {
+    if (userId && CREDIT_COST > 0) {
       await supabaseAdmin.from("usage_log").insert({
         user_id: userId,
         function_name: "generate-content",
-        ai_model: ai_model,
-        credits_used: creditCost,
+        ai_model: "minimax-m2",
+        credits_used: CREDIT_COST,
         metadata: { format, niche },
       });
     }
 
-    // Get updated balance
     let newBalance: number | undefined;
     if (userId) {
       const { data: creditData } = await supabaseAdmin
@@ -572,7 +399,7 @@ O prompt deve conter as frases reais que a IA precisa renderizar no card.`
       newBalance = creditData?.balance;
     }
 
-    return new Response(JSON.stringify({ ...result, credits_used: creditCost, balance: newBalance }), {
+    return new Response(JSON.stringify({ ...result, credits_used: CREDIT_COST, balance: newBalance }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
