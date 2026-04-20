@@ -4,12 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 export const CREDIT_COSTS = {
   "generate-content": {
-    "gemini-flash-lite": 0,
-    "gemini-flash": 20,
-    "gemini-pro": 60,
-    "gpt-4o-mini": 15,
-    "gpt-4o": 70,
-    "claude-sonnet": 90,
     "minimax-m2": 25,
   },
   "generate-images": 80, // per image
@@ -24,7 +18,7 @@ export function estimateCost(
   const textCost =
     CREDIT_COSTS["generate-content"][
       aiModel as keyof typeof CREDIT_COSTS["generate-content"]
-    ] ?? 0;
+    ] ?? 25;
   const imageCost = generateImages
     ? imageCount * CREDIT_COSTS["generate-images"]
     : 0;

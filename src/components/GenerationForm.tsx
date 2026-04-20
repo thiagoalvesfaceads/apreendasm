@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ChevronDown, Zap } from "lucide-react";
+import { Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -20,19 +20,19 @@ import {
   AudienceAwareness,
   ContentTone,
   VisualStyle,
-  AIModel,
   GOAL_LABELS,
   AWARENESS_LABELS,
   TONE_LABELS,
   VISUAL_STYLE_LABELS,
-  AI_MODEL_LABELS,
-  AI_MODEL_INFO,
 } from "@/types/content";
 
 interface GenerationFormProps {
   onSubmit: (input: ContentInput) => void;
   isGenerating: boolean;
 }
+
+const TEXT_COST = 25;
+const IMAGE_COST = 80;
 
 export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) {
   const [idea, setIdea] = useState("");
@@ -45,7 +45,8 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
   const [cards, setCards] = useState(7);
   const [generateImages, setGenerateImages] = useState(false);
   const [visualStyle, setVisualStyle] = useState<VisualStyle>("editorial_premium");
-  const [aiModel, setAiModel] = useState<AIModel>("gemini-flash-lite");
+
+  const totalCost = TEXT_COST + (generateImages && format === "carousel" ? cards * IMAGE_COST : 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,8 +62,8 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
       cards,
       generate_images: generateImages,
       visual_style: visualStyle,
-      ai_provider: AI_MODEL_INFO[aiModel].provider,
-      ai_model: aiModel,
+      ai_provider: "minimax",
+      ai_model: "minimax-m2",
     });
   };
 
@@ -238,24 +239,10 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
 
       {/* Visual Style + Image Toggle */}
       <div className="card-premium p-5 space-y-5">
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground/80">Modelo de IA (Texto)</Label>
-          <Select value={aiModel} onValueChange={(v) => setAiModel(v as AIModel)}>
-            <SelectTrigger className="bg-secondary border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(AI_MODEL_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         <div className="flex items-center justify-between">
           <div>
             <Label className="text-sm font-medium text-foreground/80">Gerar Imagens Automaticamente</Label>
-            <p className="text-xs text-muted-foreground mt-0.5">Usa Google Gemini para gerar visuais</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{IMAGE_COST} créditos por imagem (MiniMax)</p>
           </div>
           <Switch checked={generateImages} onCheckedChange={setGenerateImages} />
         </div>
@@ -289,7 +276,7 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
         ) : (
           <span className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
-            Gerar Conteúdo MASTER
+            Gerar Conteúdo MASTER · {totalCost} cr
           </span>
         )}
       </Button>
